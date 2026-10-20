@@ -2,7 +2,7 @@
 
 Ushbu repozitoriy universitetning **5-semestr "Veb dasturlar xavfsizligi"** fani doirasida bajarilgan barcha amaliy tadqiqotlar, zaifliklarni modellashtirish va ularni bartaraf etish (remediation) kodlarini o‘z ichiga oladi.
 
-Barcha laboratoriyalar **Ubuntu Live Server (VM)** muhitida, toza lokal NAT tarmog‘ida hamda universitet proksisisiz (to‘g‘ridan-to‘g‘ri shaxsiy Wi-Fi tarmog‘ida) ishlab chiqilgan va sinovdan o‘tkazilgan.
+Barcha laboratoriyalar **Ubuntu Live Server (VM) + Ubuntu Desctop** muhitida, toza lokal NAT tarmog‘ida hamda universitet proksisisiz (to‘g‘ridan-to‘g‘ri shaxsiy Wi-Fi tarmog‘ida) ishlab chiqilgan va sinovdan o‘tkazilgan.
 
 ---
 
