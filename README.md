@@ -1,6 +1,3 @@
-# web-application-security-labs
-Practical laboratory works and security research on Web Application Security (HTTP, SOP/CORS, Input Validation, DOM/XSS, IDOR/BOLA, SQLi, and CSRF) on Ubuntu Server.
-
 # Veb Dasturlar Xavfsizligi — Amaliy Laboratoriya Ishlari
 
 Ushbu repozitoriy universitetning **5-semestr "Veb dasturlar xavfsizligi"** fani doirasida bajarilgan barcha amaliy tadqiqotlar, zaifliklarni modellashtirish va ularni bartaraf etish (remediation) kodlarini o‘z ichiga oladi.
