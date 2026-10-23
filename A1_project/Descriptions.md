@@ -438,7 +438,7 @@ T2 ni to'xtatib, yana `--cors-origin http://127.0.0.1:8000` bilan ishga tushirin
    * Ekranda: `Inline: bajarilmadi`
    * Ekranda: `Tashqi JS: ishladi`
 4. DevTools **Console** bo'limida qizil xabar:
-   `Content-Security-Policy: The page’s settings blocked the loading of a resource (script-src) at inline (“default-src”).`
+   `Content-Securit![[Screenshot from 2026-10-23 17-34-28.png]]y-Policy: The page’s settings blocked the loading of a resource (script-src) at inline (“default-src”).`
 5. **Nega bunday bo'ldi?**
    Chunki server yuborgan sarlavhada `script-src 'self'` ko'rsatilgan. Bu degani: "Skriptlarni faqat alohida fayl ko'rinishida (`/app.js`) shu serverdan yuklash mumkin, HTML kodi ichidagi inline skriptlarni ishga tushirish taqiqlanadi!".
 6. Sahifadagi **"Boshqa origin"** tugmasini bosing:

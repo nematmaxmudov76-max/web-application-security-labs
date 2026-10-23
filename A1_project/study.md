@@ -79,14 +79,14 @@ Sxema     Host   Port   -----> ORIGIN: http://127.0.0.1:8000
 ### Origin Taqqoslash Matritsasi (Amaliy Misollar):
 Quyidagi jadvalda `http://127.0.0.1:8000` ga nisbatan turli manzillarning holati ko'rsatilgan:
 
-| Taqqoslanadigan URL | Bir xil Originmi? | Sabab va Texnik Izoh |
-| :--- | :---: | :--- |
-| `http://127.0.0.1:8000/profile` | **HA** | Sxema (`http`), Host (`127.0.0.1`) va Port (`8000`) bir xil. URL yo'li (`/profile`) originni o'zgartirmaydi. |
-| `http://127.0.0.1:8000/api/v1/users` | **HA** | Barcha 3 parametr ayni o'zi. |
-| `http://127.0.0.1:8001/` | **YO'Q** | Port farqli (`8000` != `8001`). Xizmatlar bitta IPda bo'lsa ham, ular boshqa origin! |
-| `http://localhost:8000/` | **YO'Q** | Host nomi farqli (`127.0.0.1` != `localhost`). Brauzer DNS orqali ularning IPsi bir ekanini tekshirmaydi; satriy (string) moslik shart. |
-| `https://127.0.0.1:8000/` | **YO'Q** | Sxema (protokol) farqli (`http` != `https`). |
-| `http://127.0.0.1/` | **YO'Q** | Ochiq ko'rsatilmagan standart HTTP porti `80` hisoblanadi (`8000` != `80`). |
+| Taqqoslanadigan URL                  | Bir xil Originmi? | Sabab va Texnik Izoh                                                                                                                    |
+| :----------------------------------- | :---------------: | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `http://127.0.0.1:8000/profile`      |      **HA**       | Sxema (`http`), Host (`127.0.0.1`) va Port (`8000`) bir xil. URL yo'li (`/profile`) originni o'zgartirmaydi.                            |
+| `http://127.0.0.1:8000/api/v1/users` |      **HA**       | Barcha 3 parametr ayni o'zi.                                                                                                            |
+| `http://127.0.0.1:8001/`             |     **YO'Q**      | Port farqli (`8000` != `8001`). Xizmatlar bitta IPda bo'lsa ham, ular boshqa origin!                                                    |
+| `http://localhost:8000/`             |     **YO'Q**      | Host nomi farqli (`127.0.0.1` != `localhost`). Brauzer DNS orqali ularning IPsi bir ekanini tekshirmaydi; satriy (string) moslik shart. |
+| `https://127.0.0.1:8000/`            |     **YO'Q**      | Sxema (protokol) farqli (`http` != `https`).                                                                                            |
+| `http://127.0.0.1/`                  |     **YO'Q**      | Ochiq ko'rsatilmagan standart HTTP porti `80` hisoblanadi (`8000` != `80`).                                                             |
 
 > **Xavfsizlik nuqtai nazaridan "null" Origin nima?**  
 > Agar sahifa `file:///path/index.html` orqali mahalliy diskdan ochilsa, `data:text/html,...` orqali yuklansa yoki `sandbox` atributli `<iframe>` ichida ishlasa, uning origini maxsus `null` qiymatiga ega bo'ladi. `null` origin o'ta cheklangan bo'lib, u hatto boshqa `null` origin bilan ham mos kelmaydi!
@@ -233,14 +233,14 @@ Agar siz `PUT`, `DELETE` metodini ishlatsangiz, `Content-Type: application/json`
 
 Mijoz va Server o'rtasidagi CORS muloqoti quyidagi HTTP sarlavhalari orqali kechadi:
 
-| Sarlavha | Kim yuboradi? | Vazifasi va Misol |
-| :--- | :---: | :--- |
-| `Origin` | Brauzer | So'rov aynan qaysi manbadan kelayotganini ko'rsatadi (`Origin: http://127.0.0.1:8000`). JavaScript bu sarlavhani soxtalashtira olmaydi! |
-| `Access-Control-Allow-Origin` | Server | Qaysi originga ruxsat berilganini bildiradi (`Access-Control-Allow-Origin: http://127.0.0.1:8000` yoki `*`). |
-| `Access-Control-Allow-Credentials` | Server | Cookielar yoki autentifikatsiya tokenlari cross-origin so'rovda ishlatilishiga ruxsat beradi (`true`). |
-| `Access-Control-Allow-Methods` | Server | Qaysi HTTP metodlariga ruxsat berilganini bildiradi (`GET, POST, PUT, DELETE`). |
-| `Access-Control-Allow-Headers` | Server | Qaysi maxsus sarlavhalarga ruxsat berilganini bildiradi (`Content-Type, Authorization`). |
-| `Access-Control-Max-Age` | Server | Preflight OPTIONS javobini brauzer qancha soniya keshlab turishi mumkinligini aytadi (masalan, `86400`). |
+| Sarlavha                           | Kim yuboradi? | Vazifasi va Misol                                                                                                                       |
+| :--------------------------------- | :-----------: | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `Origin`                           |    Brauzer    | So'rov aynan qaysi manbadan kelayotganini ko'rsatadi (`Origin: http://127.0.0.1:8000`). JavaScript bu sarlavhani soxtalashtira olmaydi! |
+| `Access-Control-Allow-Origin`      |    Server     | Qaysi originga ruxsat berilganini bildiradi (`Access-Control-Allow-Origin: http://127.0.0.1:8000` yoki `*`).                            |
+| `Access-Control-Allow-Credentials` |    Server     | Cookielar yoki autentifikatsiya tokenlari cross-origin so'rovda ishlatilishiga ruxsat beradi (`true`).                                  |
+| `Access-Control-Allow-Methods`     |    Server     | Qaysi HTTP metodlariga ruxsat berilganini bildiradi (`GET, POST, PUT, DELETE`).                                                         |
+| `Access-Control-Allow-Headers`     |    Server     | Qaysi maxsus sarlavhalarga ruxsat berilganini bildiradi (`Content-Type, Authorization`).                                                |
+| `Access-Control-Max-Age`           |    Server     | Preflight OPTIONS javobini brauzer qancha soniya keshlab turishi mumkinligini aytadi (masalan, `86400`).                                |
 
 ---
 
@@ -524,6 +524,41 @@ Veb-xavfsizlikni tahlil qilish, testlash va himoyalashda quyidagi professional v
   curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:8001/api/info
   ```
 
+### 6. "dirb" va Zamonaviy Veb Fuzzerlar (ffuf, gobuster): CSP ni Chetlab O'ta Oladimi?
+
+Ko'pincha talabalar va xavfsizlikka qiziquvchilar orasida shunday savol tug'iladi:  
+*"dirb hackerlar vositasi CSP ni to'g'ridan-to'g'ri chetlab o'ta oladimi?"*
+
+#### 1. Aniq va To'g'ridan-to'g'ri Javob:
+**YO'Q, `dirb` bevosita CSP ni chetlab o'ta olmaydi!**  
+*Nega?*
+* `dirb` — bu veb-kontent skaneri (Web Content Scanner) va kataloglar/fayllarni lug'at (wordlist) orqali bruteforce qiluvchi konsol vositasi.
+* `dirb` **brauzer emas**! Unda DOM, JavaScript dvigateli yoki CSP siyosatlarini tahlil qiluvchi modul yo'q. U shunchaki HTTP GET so'rovlarini yuborib, status kodlarini (`200 OK`, `403 Forbidden`, `301 Redirect`) tekshiradi.
+* CSP esa — bu faqat va faqat **brauzer ichida** ishlaydigan xavfsizlik cheklovidir.
+
+#### 2. Hacker Mindset: Hacker `dirb` dan CSP Bypass uchun qanday YORDAMCHI vosita sifatida foydalanadi?
+Tajovuzkor to'g'ridan-to'g'ri emas, balki **kashfiyot (Reconnaissance)** bosqichida `dirb` orqali CSP ni aylanib o'tish nuqtalarini topadi:
+1. **Yashirin JSONP Endpointlarni topish:**  
+   Agar saytda CSP `script-src 'self'` bo'lsa, hacker `dirb` orqali sayt ichidagi yashirin API yo'llarini qidiradi (masalan, `/api/v1/debug/jsonp`, `/old_api/user.php?callback=`). Agar `'self'` originida shunday endpoint topilsa, hacker o'sha endpoint orqali CSP ni buzadi.
+2. **Ochiq Fayl Yuklash (Upload) Papkalarini topish:**  
+   `dirb` yordamida `/uploads/`, `/media/avatars/`, `/tmp/` kabi kataloglar topilsa va bu papkaga foydalanuvchi fayl yuklay olsa, hacker `.js` yoki polyglot skript yuklab, o'sha faylni `'self'` nomidan chaqirib CSP ni chetlab o'tadi.
+3. **Open Redirect (Ochiq yo'naltirish) zaifliklarini topish:**  
+   Eski CSP qoidalarida ba'zi brauzerlar yo'naltirishlarni to'liq tekshirmaydi. `dirb` orqali `/login?redirect=...` kabi zaif yo'llar topilsa, undan ruxsat etilgan domendan buzg'unchi domeniga yo'naltirishda foydalaniladi.
+
+#### 3. Dasturchilar uchun Test Rejimida `dirb` dan Foydalanish:
+Dasturchi yoki DevSecOps muhandisi sifatida o'z ilovangizni xavfsizlikka sinashda `dirb` (yoki tezroq ishlaydigan zamonaviy muqobillari: `gobuster`, `ffuf`) dan shunday foydalanishingiz mumkin:
+
+```bash
+# 1. dirb orqali o'z veb-serveringizdagi yashirin va xavfli fayllarni skanerlash:
+dirb http://127.0.0.1:8000 /usr/share/dirb/wordlists/common.txt
+
+# 2. Dasturchi nimani qidirishi kerak?
+# - Saytda bexosdan qolib ketgan .env, .git, .bak fayllari
+# - Parolsiz ochiq qolgan /admin, /swagger, /metrics, /debug yo'llari
+# - Ruxsatsiz kirish mumkin bo'lgan /uploads katalogi
+```
+*Tavsiya:* Zamonaviy tezkor testlar uchun `ffuf` yoki `gobuster` vositalaridan foydalanish tavsiya etiladi (`ffuf -u http://127.0.0.1:8000/FUZZ -w wordlist.txt`).
+
 ---
 
 ## 8. A1 Laboratoriyasi Tajribalarining Xavfsizlik Nuqtai Nazaridan Tahlili
@@ -562,3 +597,171 @@ Veb-ilovalarni yaratishda xavfsizlikni ta'minlash uchun quyidagi nazorat ro'yxat
 * [ ] **Har bir sahifada qat'iy CSP siyosatini joriy qiling.** Iloji boricha `'unsafe-inline'` dan voz kechib, `nonce` yoki `hash` tizimiga o'ting.
 * [ ] **`object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'` qoidalarini unutmang.**
 * [ ] **Esda tuting:** HTTPS faqat yo'lni shifrlaydi, u SOP, CORS, CSP yoki XSS muammolarini o'z-o'zidan hal qilib bermaydi! Xavfsizlik har doim qatlamli (Defense-in-depth) bo'lishi shart.
+
+---
+
+## 10. FastAPI Dasturchilari Uchun: CSP ni Loyihada Ishlatish Qo'llanmasi
+
+Siz **FastAPI** dasturchisi sifatida o'zingiz yozgan backend ilovangizda CSP va boshqa xavfsizlik sarlavhalarini bemalol va juda qulay tarzda tatbiq qila olasiz. Quyida ishlab chiqarish (production) muhitiga mos 3 xil usul keltirilgan.
+
+### 10.1. 1-Usul: FastAPI Middleware orqali Statik CSP Qo'shish (Eng Oson Usul)
+
+Agar sizda REST API bo'lsa yoki frontend alohida React/Vue bo'lib, statik CSP sarlavhasi yetarli bo'lsa, `BaseHTTPMiddleware` dan foydalanishingiz mumkin:
+
+```python
+from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Xavfsiz FastAPI Ilovasi")
+
+# 1. CORS sozlamasi (xavfsiz oq ro'yxat bilan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000", "https://frontend.mycompany.uz"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+# 2. CSP va Xavfsizlik Sarlavhalari Middleware'i
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # CSP Sarlavhasi
+        csp_policy = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "connect-src 'self' http://127.0.0.1:8001; "
+            "img-src 'self' data: https:; "
+            "object-src 'none'; "
+            "base-uri 'none'; "
+            "frame-ancestors 'none';"
+        )
+        
+        response.headers["Content-Security-Policy"] = csp_policy
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+@app.get("/")
+def home():
+    return {"message": "CSP sarlavhasi muvaffaqiyatli qo'shildi!"}
+```
+
+---
+
+### 10.2. 2-Usul: Dinamik Nonce Generatsiyasi va Jinja2 Shablonlariga Ulash (Full-Stack FastAPI)
+
+Agar FastAPI ilovangizda server-side rendering (Jinja2Templates) ishlatsangiz va HTML ichida inline skriptlar kerak bo'lsa, **Nonce** eng xavfsiz yo'ldir:
+
+```python
+import secrets
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
+# Har bir so'rov uchun alohida Nonce yaratuvchi Middleware
+class NonceCSPMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # 1. Kriptografik jihatdan xavfsiz 16 baytli tasodifiy satr yaratamiz
+        nonce = secrets.token_urlsafe(16)
+        
+        # 2. Nonce ni request holatiga (state) saqlab qo'yamiz
+        request.state.csp_nonce = nonce
+        
+        response = await call_next(request)
+        
+        # 3. CSP sarlavhasiga ushbu nonce ni biriktiramiz
+        csp = (
+            f"default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
+            f"object-src 'none'; "
+            f"base-uri 'none';"
+        )
+        response.headers["Content-Security-Policy"] = csp
+        return response
+
+app.add_middleware(NonceCSPMiddleware)
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "nonce": request.state.csp_nonce # Shablonga uzatamiz
+    })
+```
+
+**`templates/dashboard.html` faylida:**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Xavfsiz Dashboard</title>
+</head>
+<body>
+    <h1>FastAPI va Dinamik CSP Nonce</h1>
+
+    <!-- BU SKRIPT ISHLAYDI (Chunki nonce to'g'ri): -->
+    <script nonce="{{ nonce }}">
+        console.log("Xavfsiz inline skript muvaffaqiyatli ishladi!");
+    </script>
+
+    <!-- BU SKRIPT BLOKLANADI (XSS hujumi bo'lsa ham ishlamaydi): -->
+    <script>
+        alert("Bu skript CSP tomonidan bloklanadi, chunki nonce yo'q!");
+    </script>
+</body>
+</html>
+```
+
+---
+
+### 10.3. 3-Usul: Python `secure` Kutubxonasidan Foydalanish
+
+Agar barcha xavfsizlik sarlavhalarini noldan qo'lda yozishni istamasangiz, Python ekotizimida rasmiy tavsiya etilgan `secure` kutubxonasini o'rnatib olishingiz mumkin:
+
+```bash
+pip install secure
+```
+
+**FastAPI kodida:**
+```python
+from fastapi import FastAPI, Response
+from secure import Secure
+
+# Barcha zamonaviy xavfsizlik sarlavhalarini konfiguratsiya qilish
+csp = (
+    Secure.csp()
+    .default_src("'self'")
+    .script_src("'self'")
+    .style_src("'self'")
+    .object_src("'none'")
+    .base_uri("'none'")
+)
+
+secure_headers = Secure(csp=csp, hsts=Secure.hsts(), xfo=Secure.xfo())
+
+app = FastAPI()
+
+@app.middleware("http")
+async def set_secure_headers(request, call_next):
+    response = await call_next(request)
+    secure_headers.set_headers(response)
+    return response
+
+@app.get("/api/data")
+def get_data():
+    return {"status": "Tizim xavfsiz sarlavhalar bilan himoyalangan"}
+```
+
