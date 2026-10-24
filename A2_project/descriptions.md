@@ -172,7 +172,7 @@ python -m pip show Flask nh3
 ```
 
 #### 2-qadam: Laboratoriya kodini (`a2_app.py`) yaratish
-`nano a2_app.py` orqali fayl ochiladi va laboratoriya kodi yoziladi:
+nano a2_app.py` orqali fayl ochiladi va laboratoriya kodi yoziladi:
 - **A qism:** Importlar, shablonlar (`FORM`, `RESULT`, `ERROR`), `normal_name` yordamchi funksiyasi.
 - **B qism:** Server tekshiruvi mantig‘i, `/preview` marshruti (weak va safe tarmoqlari), `nh3.clean` sanitizatsiyasi.
 - **C qism:** Xatoliklarni ushlash (`/lab-error`, `http_error`, `internal_error`), argumentlarni o‘qish va ilovani ishga tushirish.
@@ -319,21 +319,22 @@ PYCODE
 
 ### 3.5. Natijalar Jadvali
 
-| Sinov | Rejim | Kutiladigan natija | Haqiqiy natija va Izoh |
-| :--- | :--- | :--- | :--- |
-| **Brauzer: age=150** | `weak` | POST yuborilmaydi | Brauzer `max="80"` sababli xabar beradi, tarmoqqa so‘rov chiqmaydi |
-| **curl: age=150** | `weak` | 200, qiymat qabul | HTTP 200 OK, `Yosh: 150` qabul qilindi (mijoz cheklovi chetlab o‘tildi) |
-| **age=15 / 16** | `safe` | 400 / 200 | 15 rad etildi (400), 16 qabul qilindi (200) |
-| **age=80 / 81** | `safe` | 200 / 400 | 80 qabul qilindi (200), 81 rad etildi (400) |
-| **age=abc / 20.0** | `safe` | 400 / 400 | Ikkalasi ham 400 (faqat ASCII butun sonlar qabul qilinadi) |
-| **name=  Oʻtkir  ** | `safe` | 200, O'tkir | 200 OK, bo‘sh joylar qirqildi, apostrof `'` ga keltirildi |
-| **name=Ali7 / A** | `safe` | 400 / 400 | 400 (Ali7 da raqam bor, A esa 2 belgidan kam) |
-| **age ikki marta** | `safe` | 400 | 400 Bad Request (HTTP Parameter Pollution bloklandi) |
-| **comment=`<b>A2</b>`** | `safe` | Plain: literal; rich: qalin | Plain da `<b>A2</b>` matn bo‘lib chiqdi; Rich da esa qalin matn |
-| **onclick + img fragmenti** | `safe` | Rich: faqat `<b>Salom</b>` | `onclick` va `<img>` olib tashlandi, faqat xavfsiz `<b>` qoldi |
-| **/lab-error** | `safe` | 500, qayd raqami bor | 500, ekranda faqat 12 xonali ID, terminalda traceback |
-| **MAX_AGE=800; age=150** | `safe` | 200 — noto‘g‘ri qoida | 200 OK (serverdagi noto‘g‘ri biznes qoidasi oqibati) |
-| **Tiklangan; age=80 / 81** | `safe` | 200 / 400 | 80 ga 200 OK, 81 ga 400 Bad Request (qoida tiklandi) |
+| Sinov                       | Rejim  | Kutiladigan natija          | Haqiqiy natija va Izoh                                                  |
+| :-------------------------- | :----- | :-------------------------- | :---------------------------------------------------------------------- |
+| **Brauzer: age=150**        | `weak` | POST yuborilmaydi           | Brauzer `max="80"` sababli xabar beradi, tarmoqqa so‘rov chiqmaydi      |
+| **curl: age=150**           | `weak` | 200, qiymat qabul           | HTTP 200 OK, `Yosh: 150` qabul qilindi (mijoz cheklovi chetlab o‘tildi) |
+| **age=15 / 16**             | `safe` | 400 / 200                   | 15 rad etildi (400), 16 qabul qilindi (200)                             |
+| **age=80 / 81**             | `safe` | 200 / 400                   | 80 qabul qilindi (200), 81 rad etildi (400)                             |
+| **age=abc / 20.0**          | `safe` | 400 / 400                   | Ikkalasi ham 400 (faqat ASCII butun sonlar qabul qilinadi)              |
+| **name=  Oʻtkir  **         | `safe` | 200, O'tkir                 | 200 OK, bo‘sh joylar qirqildi, apostrof `'` ga keltirildi               |
+| **name=Ali7 / A**           | `safe` | 400 / 400                   | 400 (Ali7 da raqam bor, A esa 2 belgidan kam)                           |
+| **age ikki marta**          | `safe` | 400                         | 400 Bad Request (HTTP Parameter Pollution bloklandi)                    |
+| **comment=`<b>A2</b>`**     | `safe` | Plain: literal; rich: qalin | Plain da `<b>A2</b>` matn bo‘lib chiqdi; Rich da esa qalin matn         |
+| **onclick + img fragmenti** | `safe` | Rich: faqat `<b>Salom</b>`  | `onclick` va `<img>` olib tashlandi, faqat xavfsiz `<b>` qoldi          |
+| **/lab-error**              | `safe` | 500, qayd raqami bor        | 500, ekranda faqat 12 xonali ID, terminalda traceback                   |
+| **MAX_AGE=800; age=150**    | `safe` | 200 — noto‘g‘ri qoida       | 200 OK (serverdagi noto‘g‘ri biznes qoidasi oqibati)                    |
+| **Tiklangan; age=80 / 81**  | `safe` | 200 / 400                   | 80 ga 200 OK, 81 ga 400 Bad Request (qoida tiklandi)                    |
+|                             |        |                             |                                                                         |
 
 ---
 
