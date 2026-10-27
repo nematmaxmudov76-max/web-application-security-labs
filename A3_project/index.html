@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="uz">
+<head>
+    <meta charset="utf-8">
+    <title>A3: mijoz tomoni xavfsizligi</title>
+    <style>
+        body {font: 18px sans-serif; max-width: 850px; margin: 30px auto;}
+        textarea {width: 95%; height: 75px;}
+        section {border: 1px solid #aaa; padding: 15px; margin: 15px 0;}
+        pre {white-space: pre-wrap; overflow-wrap: anywhere;}
+        button {margin: 4px; padding: 8px;}
+    </style>
+</head>
+<body>
+    <h1>A3: DOM, Fetch va Web Storage</h1>
+    <p>Faqat mahalliy o'quv tajribasi. Haqiqiy token kiritmang.</p>
+    <label for="input">Sinov matni:</label><br>
+    <textarea id="input">Salom, A3!</textarea>
+
+    <section>
+        <h2>1. DOM</h2>
+        <button id="weak">Zaif chiqarish</button>
+        <button id="safe">Xavfsiz chiqarish</button>
+        <button id="reset">DOMni tozalash</button>
+        <p>Marker: <strong id="flag">TAYYOR</strong></p>
+        <div id="preview"></div>
+    </section>
+
+    <section>
+        <h2>2. Fetch API</h2>
+        <button id="fetch">API so'rovi</button>
+        <p id="status">So'rov yuborilmadi.</p>
+        <pre id="api"></pre>
+    </section>
+
+    <section>
+        <h2>3. Uchinchi tomon skripti maketi</h2>
+        <p id="vendor">Skript hali ishlamadi.</p>
+    </section>
+
+    <script src="app.js" defer></script>
+    <script src="vendor.js" defer></script>
+</body>
+</html>

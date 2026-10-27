@@ -1,0 +1,327 @@
+VEB DASTURLAR XAVFSIZLIGI
+A5. Inyeksiya zaifliklari: SQL inyeksiya, NoSQL va ORM xavfsizligi
+1-VARIANT — Mahsulotlar katalogida so‘rovlarni tekshirish va himoyalash
+Mashg‘ulot maqsadi. Foydalanuvchi kiritmasi so‘rov tuzilishini qanday o‘zgartirishini tajribada ko‘rsatish; SQL parametrlarini bog‘lash, ORM ifodalari va NoSQL kiritma turini tekshirish yordamida zaifliklarni bartaraf etish.
+Kutiladigan natija. Talaba uchta zaif funksiya uchun takrorlanadigan dalil yig‘adi, kodni tuzatadi va aynan avvalgi endpointlarda qayta sinaydi. Oddiy qidiruv, apostrofli nom hamda yopiq yozuv uchun regressiya tekshiruvlarini bajaradi; natijani HTTP status, count va qaytgan IDlar bilan asoslaydi.
+Ko‘rsatkich
+Qiymat
+Semestr / variant
+Faqat 5-semestr / A5 / 1-variant
+Vaqt
+80 daqiqa; VM, paketlar va ilova kodi darsdan oldin tayyorlanadi
+Xona
+30 ta Windows 11; 8 yadroli CPU, 32 GB RAM, 1 TB SSD; LAN va internet
+Virtual muhit
+VMware Workstation; Ubuntu Desktop 24.04 LTS; 4 vCPU, 8 GB RAM, obrazdagi disk
+Laboratoriya manzili
+http://127.0.0.1:8005/ — server va mijoz bitta VM ichida
+Ma’lumotlar
+4 ta sun’iy mahsulot: 3 ta ochiq va 1 ta yopiq yozuv
+Topshiriladi
+Individual DOCX/PDF hisobot, tuzatilgan app.py va sinov dalillari
+Baholash
+10 ball; amaliy natija va qisqa og‘zaki himoya
+0 Talaba bajaradigan dastlabki tayyorgarlik
+O‘qituvchi ishlaydigan tayyor VMware obrazini fayl serverga joylashtiradi. VMware o‘rnatish, obrazni nusxalash, hisoblar, proksi, paketlar, kod, sinov, snapshot va hisobotni talaba mustaqil bajaradi. Dastlabki tayyorgarlik 60–90 daqiqa yoki zarur qo‘shimcha vaqt oladi; asosiy 80 daqiqaga kirmaydi.
+0.1 Fayl serverga Windows orqali kirish
+Windowsda Win+R yoki File Explorer manzil satrida quyidagi SMB yo‘lni oching. Bu brauzer uchun HTTP manzil emas.
+\\172.18.233.234\files
+Windows Security oynasida login fileuser va parol 1234567 kiriting. Bu ma’lumotlar faqat SMB ulanishi uchun; Ubuntu yoki proksi paroli emas. Ubuntu ichida obraz bilan berilgan sudo huquqli hisobdan foydalaning.
+1-rasm. Fayl serverga kirish oynasi
+0.2 Dasturlar va tayyor obrazni tanlash
+Dasturlar papkasidan VMware-workstation-full-17.6.4.exe va Ubuntu_24.04_VM.7z fayllarini Windowsning lokal diskiga nusxalang. Ubuntu_24.04_VM.7z — brauzerli Desktop; ushbu fan ishlari uchun shu obraz tanlanadi. UbuntuServer_24.04_VM.7z fayli Server muhitiga tegishli.
+2-rasm. Dasturlar papkasidagi VMware va Ubuntu obrazlari
+ISO papkasi serverda mavjud, lekin bu ishda Linuxni ISO orqali o‘rnatish bajarilmaydi. Boshqa operatsion tizim talab qilinsa, keyin joylashtiriladigan tegishli tayyor VMware obrazi olinadi; uning nomi oldindan taxmin qilinmaydi.
+3-rasm. ISO papkasining ko‘rinishi
+0.3 VMware va individual nusxani ochish
+1. VMware o‘rnatgichini Windows administrator huquqi bilan ishga tushiring. O‘rnatish tugagach zarur bo‘lsa kompyuterni qayta yuklang. Obraz arxivini 7-Zip orqali D:\Veb-A5-LAB\VM papkasiga to‘liq oching; arxiv ichidan yoki tarmoq papkasidan VMni ishga tushirmang.
+2. VMware → File → Open orqali ochilgan papkadagi .vmx faylini tanlang. VM nomini Veb-A5-LAB deb belgilang. Birinchi ishga tushishda “I copied it” tanlansin; har talabaning nusxasi va MAC manzili alohida bo‘ladi.
+3. VM o‘chiq holatda Settings orqali 4 vCPU va 8 GB RAM belgilang. Obrazdagi virtual disk hajmini saqlang, kichraytirmang. Diskda ochilgan obraz va snapshot uchun yetarli joy qoldiring. Brauzer, curl va server bir Ubuntu VM ichida ishlaydi.
+4. Ubuntu konsoliga kirib terminalni oching. Windowsdagi 127.0.0.1 VMga olib bormaydi. Quyidagi buyruqlarni Ubuntu Bashda bajaring:
+sudo hostnamectl set-hostname veb-a5-labwhoamiidsudo -vdate -Is
+0.4 Vaqtinchalik NAT va universitet proksisi
+VM Settings → Network Adapter → NAT tanlang; paketlar yuklanayotganda Connected yoqilgan bo‘lsin. Bridged, port forwarding va Windows Internet Connection Sharing yoqilmaydi. 172.18.1.1:2500 — proksi manzili, VM IPsi yoki gatewayi emas.
+Har yangi paket o‘rnatish terminalida quyidagi export buyruqlarini qayta bajaring. APT uchun alohida doimiy konfiguratsiya keyingi blokda berilgan.
+export http_proxy="http://172.18.1.1:2500"export https_proxy="http://172.18.1.1:2500"export HTTP_PROXY="http://172.18.1.1:2500"export HTTPS_PROXY="http://172.18.1.1:2500"export no_proxy="localhost,127.0.0.1,::1,app.a6.test,evil.a6.test,a9.test,wrong.test"export NO_PROXY="$no_proxy"curl -I https://ubuntu.com
+APT sozlamasi uchun sudo nano /etc/apt/apt.conf.d/99proxy buyrug‘ini bajaring. Mavjud fayl bo‘lsa avval mazmunini tekshiring; quyidagi uch satrni saqlang:
+Acquire::http::Proxy  "http://172.18.1.1:2500";Acquire::https::Proxy "http://172.18.1.1:2500";Acquire::ftp::Proxy   "http://172.18.1.1:2500";
+99proxy faylini saqlang va nano oynasidan chiqing. Quyidagi buyruqlar fayl mazmuni emas; ularni Ubuntu terminalida bajaring:
+apt-config dump | grep -i proxysudo apt updatesudo apt install -y python3 curl nano open-vm-tools open-vm-tools-desktop
+0.5 Firefox va mashg‘ulot paketlarini tayyorlash
+Firefoxni menyudan ochib tekshiring. Mavjud bo‘lsa qayta o‘rnatmang. Firefox yo‘q bo‘lsa, APT va terminal exportlari snapd xizmatiga avtomatik o‘tmasligini hisobga olib, quyidagi xizmat konfiguratsiyasini yarating:
+sudo apt install -y snapdsudo mkdir -p /etc/systemd/system/snapd.service.dsudo nano /etc/systemd/system/snapd.service.d/veb-proxy.conf
+veb-proxy.conf fayliga faqat quyidagi uchta Environment satri va [Service] sarlavhasini yozing:
+[Service]Environment="HTTP_PROXY=http://172.18.1.1:2500"Environment="HTTPS_PROXY=http://172.18.1.1:2500"Environment="NO_PROXY=localhost,127.0.0.1,::1"
+Faylni saqlab, muharrirdan chiqing. Endi terminalda xizmatni yangilang va Firefoxni o‘rnating:
+sudo systemctl daemon-reloadsudo systemctl restart snapdsudo snap install firefoxfirefox --version
+Keyingi muhitni tayyorlash bo‘limidagi apt va pip buyruqlarini NAT hali ulangan paytda bajaring. pip ishlatilgan variantda .venvni faollashtiring; sudo pip ishlatmang. requirements-lock.txt va haqiqiy versiyalarni saqlang. Yuklash xato bersa proksi/NAT va vaqtni tekshiring; paketlar tayyor bo‘lmaguncha tajribani boshlamang.
+0.6 Lokal tajribaga o‘tish va dalillarni chiqarish
+Barcha paketlar va kodlar tayyorlangach VMni o‘chiring. Har bir Network Adapter uchun Connected va Connect at power on belgilarini olib tashlang. Alohida laboratoriya adapteri kerak emas: barcha xizmatlar 127.0.0.1da ishlaydi. VMni qayta boshlang; Firefox → Settings → Network Settings → No proxy tanlang. curl sinovlarida --noproxy "*" ishlatiladi. A6dagi lokal domen nomlari saqlanadi.
+VM o‘chiq paytda VM → Snapshot → Take Snapshot orqali Veb-A5-base yarating. Kod va konfiguratsiyani hujjatdagi boshlang‘ich rejimga tayyorlang. Snapshotga qaytishdan oldin hisobot va dalillarni Windowsga eksport qiling. Ish oxirida tiklashni talaba o‘zi bajaradi; snapshot nusxa olish o‘rnini bosmaydi.
+Windowsda D:\Veb-A5-LAB\Report papkasini yarating. VM Settings → Options → Shared Folders → Always enabled → Add orqali faqat shu papkani VebA5 nomi bilan ulang. Ubuntu ichida quyidagilarni bajaring:
+vmware-hgfsclientsudo mkdir -p /mnt/veba5sharesudo vmhgfs-fuse .host:/VebA5 /mnt/veba5share \  -o allow_other,uid=$(id -u),gid=$(id -g)touch /mnt/veba5share/export-check.txt
+vmware-hgfsclient chiqishida ulashilgan nom, Windows papkasida export-check.txt ko‘rinsin. Mountpoint oldin ulangan bo‘lsa qayta mount qilmang. Hisobot, kerakli kod va dalillarni shu katalogga nusxalang; token, cookie va yopiq kalitlarni umumiy papkaga chiqarmang.
+P1 — tayyor obraz va VMware nusxasi; P2 — proksi/APT va paket versiyalari; P3 — uzilgan adapterlar hamda lokal xizmat; P4 — snapshot va Shared Folders dalillarini hisobotga qo‘shing. Kod bloklari och kulrang, muhim manzil va sozlamalar och sariq fon bilan ajratilgan.
+Asosiy amaliy mashg‘ulot
+Vositalar va dastlabki bilimlar
+Python 3, Flask 3.1.3, SQLAlchemy 2.0.43, mongomock 4.3.0; SQLite Python tarkibida mavjud. Aniq versiyalar ushbu laboratoriyani takrorlash uchun tanlangan.
+Ubuntu terminalidagi Bash, curl, nano; Firefox brauzeri. HTTP GET/POST, JSON, SELECT va WHERE bo‘yicha boshlang‘ich bilimlar kerak.
+NoSQL muhiti. mongomock MongoDBga o‘xshash kolleksiya va so‘rovlarni xotirada bajaruvchi test emulyatoridir. Bu variantda haqiqiy MongoDB serveri o‘rnatilmaydi; uning autentifikatsiyasi, tarmoq protokoli, ishlash tezligi va barcha operatorlari sinovdan o‘tkazilmaydi. [5]
+Talaba 0-bo‘lim bo‘yicha tayyor Ubuntu Desktop VMware obrazini ochadi, universitet proksisi orqali paketlarni o‘rnatadi va ilovalardagi kod fayllarini o‘zi yaratadi. Nusxa olish, paket yuklash va kod tayyorlash asosiy 80 daqiqadan oldin bajariladi; dastlabki tayyorgarlikka 60–90 daqiqa yoki zarur qo‘shimcha vaqt ajrating.
+Nazariy tayanch: uch xil so‘rov, umumiy sabab
+Inyeksiya — ishonchsiz kiritma ma’lumot sifatida qolmay, bajariladigan so‘rovning mantiqiga ta’sir qilishi. Ushbu ishda SQL matni va NoSQL so‘rov obyekti alohida tekshiriladi. ORMdan foydalanishning o‘zi xavfsizlik kafolati emas: ORM sessiyasida ham foydalanuvchi matni bilan yig‘ilgan xom SQL bajarilishi mumkin.
+Mexanizm
+Zaif yondashuv
+Himoya
+SQL
+Kiritmani f-string orqali SQL ichiga qo‘shish
+Qiymatni ? placeholder orqali alohida uzatish
+ORM
+Session.execute(text(f"…{name}…"))
+Model maydonlari orqali select va where tuzish
+NoSQL
+Matn o‘rnida kelgan JSON obyektini filtrga kiritish
+JSON sxemasi, string turi, uzunlik; server belgilagan operator
+SQLda kod va qiymatni ajratish
+Parametrli so‘rovda SQL shabloni o‘zgarmaydi, foydalanuvchi qiymati alohida bog‘lanadi. Parametr o‘rniga kelgan apostrof yoki OR yozuvi SQL operatori bo‘lib bajarilmaydi. Jadval/ustun nomi va saralash yo‘nalishi kabi sintaksis qismlarini oddiy qiymat parametri bilan almashtirib bo‘lmaydi; zarur bo‘lsa serverdagi ruxsat etilgan nomlar xaritasi ishlatiladi. [1, 6]
+ORM va NoSQLning farqi
+SQLAlchemyda Product.name == name ifodasi qiymatni parametr sifatida bog‘lash imkonini beradi. text() esa allaqachon f-string bilan yig‘ilgan xavfli SQLni avtomatik tozalamaydi. Bu misolda ORMning zaif varianti SQL inyeksiyaning ORM orqali bajarilishidir; boshqa, alohida zaiflik turi deb talqin qilinmaydi. [3]
+MongoDB so‘rovida $ne teng emaslik operatoridir. {"name":{"$ne":null}} kiritmasi name maydoni mavjud va null bo‘lmagan yozuvlarga mos keladi. Laboratoriyadagi barcha nomlar shunday, ammo server qo‘ygan public=True filtri saqlanadi. Shu sabab uchta ochiq yozuv chiqadi; yopiq ID=4 chiqmaydi. [4]
+Himoya qatlamlari
+SQL uchun asosiy tuzatish — parametrli so‘rov. Apostrofni taqiqlash qonuniy nomlarni buzadi; xato xabarini yashirish esa so‘rov mantiqini tuzatmaydi. [1]
+NoSQL uchun name matn bo‘lishi va faqat belgilangan maydon kelishi tekshiriladi. Operatorni mijoz tanlamaydi; server $eq ishlatadi. [2]
+Ishlab chiqarish bazasida ilova hisobiga faqat zarur huquqlar beriladi. Stored procedure ichida ham xavfli dinamik SQL tuzilsa inyeksiya saqlanib qoladi. [1]
+Ushbu variant chegarasi. Asosiy tajriba SQL mantiqini o‘zgartirish, ORM xom SQLi va NoSQL operator kiritmasidir. Qo‘shimcha UNION sinovi berilgan. Time-based blind SQLi bu SQLite laboratoriyasida bajarilmaydi: SQLite standartida MySQLdagi SLEEP() funksiyasi yo‘q.
+1.1. Muhitni tayyorlash — darsdan oldin
+0-bo‘limdagi tayyor Ubuntu_24.04_VM.7z obrazidan foydalaning. VMda shu hujjatdagi vCPU va RAM qiymatlarini belgilang; obrazning mavjud virtual diskini saqlang. Ubuntu ichida Ctrl+Alt+T orqali Bash terminalini oching. Paketlar uchun vaqtinchalik NAT va proksidan foydalaning; sinovdan oldin NATni uzing.
+sudo apt updatesudo apt install -y python3 python3-venv python3-pip curl nanomkdir -p ~/websec/A5cd ~/websec/A5python3 -m venv .venvsource .venv/bin/activatepython -m pip install Flask==3.1.3 SQLAlchemy==2.0.43 mongomock==4.3.0python -m pip freeze > requirements-lock.txt
+1-ilovaning A, B va C qismlarini ketma-ket bitta app.py fayliga yozing. Ilova sarlavhalarini kodga ko‘chirmang. Fayl UTF-8 bo‘lsin; chekinishlar va koddagi oddiy ASCII apostroflarni saqlang. nano: Ctrl+O, Enter — saqlash; Ctrl+X — chiqish.
+nano app.pypython -m py_compile app.pypython app.py
+Server terminali ochiq qolsin. Ubuntu VMning o‘zida ikkinchi terminal oching va brauzerda http://127.0.0.1:8005/ manziliga kiring. JSON javobida A5 / 1-variant va oltita endpoint ko‘rinadi. Root sahifada grafik forma yo‘q; barcha sinovlar quyidagi curl buyruqlari bilan bajariladi.
+cd ~/websec/A5mkdir -p evidencecurl --noproxy "*" -i http://127.0.0.1:8005/cp app.py app_before.py
+Talabaning tayyorgarlik tekshiruvi
+O‘z VMingizda app.py va kutubxonalar mavjudligini tekshiring. NAT uzilgan holda /sql/weak?name=Daftar so‘rovi count=1 qaytarsin.
+Har bir talaba VMni o‘z kompyuterida ishga tushiradi. 127.0.0.1 shu VMning o‘zini bildiradi; boshqa ish joyi bilan IP to‘qnashuvi yuz bermaydi.
+Sinovlar faqat berilgan lokal ilova va sun’iy ma’lumotlarda bajariladi. Xonadagi boshqa xizmatlarni skanerlash talab etilmaydi.
+Xotiradagi ma’lumotlar. SQLite va NoSQL kolleksiyasi dastur ishga tushganda yangidan yaratiladi. Server qayta ishga tushirilsa yozuvlar boshlang‘ich holatga qaytadi. SQLite uchun alohida DB foydalanuvchilari yoki GRANT rollari bu kodda mavjud emas.
+1.2. Vaqt rejasi va boshlang‘ich tekshiruv
+Bosqich
+Vaqt
+Olinadigan dalil
+Yo‘riqnoma va muhitni tekshirish
+8 daqiqa
+Server ochildi, endpointlar mavjud
+Oddiy qidiruv va ma’lumotlar
+10 daqiqa
+Nazorat so‘rovlari natijasi
+SQL inyeksiya
+17 daqiqa
+OR va true/false juftligi
+ORMda xom SQL
+12 daqiqa
+Zaif va xavfsiz ORM farqi
+NoSQL operatori
+13 daqiqa
+String/obyekt kiritmalar farqi
+Uch funksiyani tuzatish va qayta sinash
+12 daqiqa
+Avvalgi endpointlarda himoya
+Hisobot va qisqa himoya
+8 daqiqa
+Natija jadvali va xulosa
+Jami
+80 daqiqa
+Qo‘shimcha topshiriq hisobga kirmaydi
+Katalogning ma’lum boshlang‘ich holati
+ID
+name
+public
+Kutiladigan ko‘rinish
+1
+Daftar
+true
+Ochiq
+2
+Qalam
+true
+Ochiq
+3
+O'quv qo'llanma
+true
+Ochiq; oddiy apostroflar mavjud
+4
+Ichki loyiha
+false
+Oddiy qidiruvda chiqmasligi kerak
+1-topshiriq. Oddiy nom, yopiq nom va mavjud bo‘lmagan nomni tekshiring. Buyruqdagi -G GET parametrini tuzadi; --data-urlencode bo‘sh joy va maxsus belgilarni URL uchun kodlaydi. -i HTTP status va sarlavhalarni chiqaradi.
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Daftar"curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Ichki loyiha"curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Mavjud emas"
+Kutiladigan natija. Uchala so‘rov ham HTTP 200: mos ravishda count=1 (ID=1), count=0 va count=0. Bo‘sh natija muvaffaqiyatsiz HTTP so‘rov degani emas. ID=4 oddiy qidiruvda ko‘rinmasligi keyingi inyeksiya sinovi uchun nazorat holatidir.
+Dalil D1. Birinchi va ikkinchi javobni buyruqlari bilan saqlang. Keyingi buyruqlarning oxiriga | tee evidence/D2.txt kabi yozuv qo‘shib matnli dalil olish mumkin. Fayl nomini har tajribada o‘zgartiring.
+1.3. SQL inyeksiyani aniqlash va sababini izohlash
+2-topshiriq. /sql/weak endpointiga quyidagi kiritmani yuboring. Oddiy ASCII apostrof va oxirgi -- izoh belgilaridan foydalaning; uzun tipografik tire ishlatmang.
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Daftar' OR 1=1 -- "
+Kutiladigan natija: HTTP 200, count=4, IDlar 1, 2, 3, 4. Koddagi zaif so‘rov quyidagicha o‘zgaradi:
+SELECT id, name, public FROM productsWHERE name = 'Daftar' OR 1=1 -- ' AND public = 1
+Apostrof matn literalini yakunlaydi. OR 1=1 shartni barcha qatorlar uchun rost qiladi; -- qator oxirigacha qolgan qismni izohga aylantiradi. Natijada public = 1 filtri bajarilmaydi va ID=4 ham chiqadi. Bu laboratoriyadagi yopiq yozuvni o‘qish cheklovi buzilganining dalilidir.
+True/false juftligi
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Daftar' AND 1=1 -- "curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \  --data-urlencode "name=Daftar' AND 1=2 -- "
+Birinchi javob count=1, ID=1; ikkinchisi count=0. Natija mantiqiy shartga bog‘liq o‘zgarganini ko‘rsating. Bu endpoint qatorlarni ochiq qaytaradi: tajribani to‘liq “blind SQLi” deb nomlamang; u mantiqiy ta’sirni ko‘rsatadi.
+Parametrli so‘rov bilan taqqoslash
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/safe \  --data-urlencode "name=Daftar' OR 1=1 -- "curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/safe \  --data-urlencode "name=O'quv qo'llanma"
+Himoyalangan endpointda birinchi so‘rov HTTP 200 va count=0: butun kiritmaga teng mahsulot yo‘q. Ikkinchisi HTTP 200 va count=1, ID=3: apostroflar qonuniy ma’lumot sifatida ishladi. Shu apostrofli nomni /sql/weak orqali yuborsangiz HTTP 400 va umumiy xato javobi keladi.
+Dalil D2–D3. OR natijasidagi ID=4ni, true/false juftligini va safe endpointdagi ikki natijani saqlang. “Zaiflik yo‘q” xulosasini faqat HTTP 200 yoki xato yo‘qligiga qarab chiqarmang; qaytgan IDlar va countni ham solishtiring.
+1.4. ORM xavfsizligi: xom SQL va model ifodasi
+3-topshiriq. ORM ishlatilgan endpointlarni tekshiring. /orm/weak SQLAlchemy Session orqali xom SQLni bajaradi; /orm/safe esa Product modeli va where ifodalaridan foydalanadi. Har ikkisi bir xil SQLite jadvalini o‘qiydi.
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/weak \  --data-urlencode "name=Daftar' OR 1=1 -- "curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/safe \  --data-urlencode "name=Daftar' OR 1=1 -- "curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/safe \  --data-urlencode "name=O'quv qo'llanma"
+So‘rov
+HTTP
+count / IDlar
+Izoh
+ORM weak + OR
+200
+4 / 1, 2, 3, 4
+Yopiq yozuv ham chiqadi
+ORM safe + OR
+200
+0 / yo‘q
+Kiritma qiymat bo‘lib qoladi
+ORM safe + apostrofli nom
+200
+1 / 3
+Qonuniy nom ishlaydi
+Koddagi farqni toping
+query = SQL + f"WHERE name = '{name}' AND public = 1"session.execute(text(query))
+Bu yerda text() chaqirilishidan oldin name SQL matniga qo‘shib bo‘lingan. Session mavjudligi yoki funksiya “ORM” deb nomlanishi kiritmani parametrga aylantirmaydi.
+stmt = select(Product).where(    Product.name == name, Product.public.is_(True))session.scalars(stmt).all()
+Bu ifodada nom qiymati SQLAlchemy orqali bog‘lanadi, public filtri server tomonidan belgilanadi. SQLAlchemy bilan xom SQL zarur bo‘lsa, :name kabi bog‘langan parametr ham ishlatilishi mumkin; f-string bilan foydalanuvchi qiymatini so‘rovga kiritishdan voz kechiladi. [3]
+Talabaning izohi
+orm_weak va orm_safe funksiyalarida xavfsizlikka ta’sir qiladigan ikki farqni ko‘rsating.
+“ORM ishlatilsa SQL inyeksiya bo‘lmaydi” fikri nega noto‘g‘ri ekanini olingan javoblar bilan asoslang.
+Parametrli so‘rov bilan public filtri turli vazifalarni bajarishini tushuntiring: biri so‘rov tuzilishini, ikkinchisi ko‘rinadigan yozuvlar doirasini belgilaydi.
+Dalil D4. Uch buyruq natijasi va zaif satrning koddan olingan parchasi. /orm/safe uchun Daftar → ID=1 va Ichki loyiha → count=0 nazoratlarini ham bajaring.
+1.5. NoSQL: matn o‘rnida operator obyekti
+4-topshiriq. Quyidagi POST so‘rovlarini bajaring. JSON tanasi Bashda bir tirnoq ichiga olingan: bu $ne ichidagi dollar belgisining shell o‘zgaruvchisi sifatida talqin qilinishini to‘xtatadi. HTTP Content-Type application/json bo‘lishi kerak.
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/weak \  -H 'Content-Type: application/json' \  -d '{"name":"Daftar"}'curl --noproxy "*" -i http://127.0.0.1:8005/nosql/weak \  -H 'Content-Type: application/json' \  -d '{"name":{"$ne":null}}'curl --noproxy "*" -i http://127.0.0.1:8005/nosql/safe \  -H 'Content-Type: application/json' \  -d '{"name":{"$ne":null}}'
+Kutiladigan natija. Oddiy nom: HTTP 200, count=1, ID=1. Zaif endpointga operatorli obyekt: HTTP 200, count=3, IDlar 1, 2, 3. Himoyalangan endpointga shu obyekt: HTTP 400, name matn bo‘lishi kerakligi haqidagi error.
+So‘rov nega kengaydi?
+query = {'name': body['name'], 'public': True}
+Zaif kod JSONdagi name qiymatini tekshirmay qabul qiladi. Mijoz matn o‘rniga operatorli obyekt yuborganda obyekt filtr mantiqiga aylanadi. Biroq public=True serverda o‘zgarmagan. SQL tajribasidan farqli ravishda ID=4 ochilmagan; bu holatni “barcha yopiq ma’lumotlar olindi” yoki “login chetlab o‘tildi” deb yozmang.
+Himoyalangan kiritma shartlari
+Tana JSON obyekt bo‘lishi; faqat name maydoni mavjud bo‘lishi; qiymati 1–120 belgili string bo‘lishi kerak.
+name obyekt, ro‘yxat, null yoki son bo‘lsa HTTP 400 qaytadi. Matn tekshirilgach filtr serverda $eq orqali tuziladi. [2]
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/safe \  -H 'Content-Type: application/json' \  -d '{"name":"Daftar"}'curl --noproxy "*" -i http://127.0.0.1:8005/nosql/safe \  -H 'Content-Type: application/json' \  -d '{"name":"Daftar","public":false}'
+Birinchi javob HTTP 200, count=1, ID=1. Ikkinchisi qo‘shimcha maydon sabab HTTP 400. JSONda publicni yuborish bilan serverdagi ko‘rinish qoidasini boshqarishga yo‘l berilmaydi.
+Dalil D5. Oddiy va operatorli so‘rovlar, safe javobi va ularning izohi. mongomock natijalarini haqiqiy MongoDB serverining barcha xatti-harakatlariga umumlashtirmang.
+1.6. Kodni tuzatish va avvalgi manzillarda qayta sinash
+5-topshiriq. Server terminalida Ctrl+C bosing. app_before.py boshlang‘ich nusxa sifatida saqlanadi. app.py ichidagi uchta weak funksiyaning tanasini quyidagicha almashtiring. Funksiya nomlari va endpointlar o‘zgarmasin; safe funksiyalar namuna sifatida qoladi.
+SQL uchun almashtiriladigan funksiya
+def sql_weak(name):    with engine.connect() as conn:        query = SQL + 'WHERE name = ? AND public = 1'        return conn.exec_driver_sql(query, (name,)).mappings().all()
+ORM uchun almashtiriladigan funksiya
+def orm_weak(name):    with Session(engine) as session:        stmt = select(Product).where(            Product.name == name, Product.public.is_(True))        return [dict(id=p.id, name=p.name, public=p.public)                for p in session.scalars(stmt).all()]
+NoSQL uchun almashtiriladigan funksiya
+def nosql_weak(body):    if not isinstance(body, dict) or set(body) != {'name'}:        abort(400, description='Faqat name maydoni kerak')    name = scalar(body['name'])    query = {'name': {'$eq': name}, 'public': True}    return list(collection.find(query, {'_id': 0}))
+python -m py_compile app.pypython app.py
+Ikkinchi terminalda 1.3–1.5dagi /weak buyruqlarini qayta bajaring. Faqat /safe manziliga o‘tish tuzatish deb hisoblanmaydi. SQL/ORM OR kiritmasi endi HTTP 200 va count=0; NoSQL operatorli obyekt HTTP 400 bo‘lsin. Daftar barcha yo‘llarda ID=1 qaytarsin; SQL/ORM apostrofli nomni ID=3 bilan topsin; Ichki loyiha chiqmasin.
+Dalil D6. Uch funksiyaning oldin/keyin kod farqi, aynan /sql/weak, /orm/weak va /nosql/weak dagi qayta sinovlar. Xatoni faqat umumiy errorga aylantirish, apostrofni o‘chirish yoki countni sun’iy nolga o‘rnatish qabul qilinmaydi.
+Yakunlash. Serverni Ctrl+C bilan to‘xtating. Tuzatilgan app.py, requirements-lock.txt va evidence papkasini hisobot bilan birga saqlang. Keyingi dars uchun virtual mashina holatini saqlash mumkin.
+1.7. Natijalarni qayd etish va hisobot talablari
+Jadvaldagi “keyin” natijalarni tuzatilgan /weak endpointlarida oling. Kutiladigan natijalar taqqoslash uchun berilgan; amalda kuzatilgan HTTP, count va IDlarni hisobotga o‘zingiz kiriting. Mos kelmasa sababini qayd eting.
+Sinov
+Tuzatishdan oldin
+Tuzatishdan keyin
+Amaldagi natija / dalil
+SQL: Daftar
+200; 1; ID=1
+200; 1; ID=1
+________________
+SQL: OR 1=1
+200; 4; ID=1–4
+200; 0
+________________
+SQL: apostrofli nom
+400; error
+200; 1; ID=3
+________________
+ORM: OR 1=1
+200; 4; ID=1–4
+200; 0
+________________
+ORM: apostrofli nom
+400; error
+200; 1; ID=3
+________________
+NoSQL: Daftar
+200; 1; ID=1
+200; 1; ID=1
+________________
+NoSQL: $ne:null
+200; 3; ID=1–3
+400; error
+________________
+SQL/ORM/NoSQL: Ichki loyiha
+200; 0
+200; 0
+________________
+Hisobot tarkibi
+Titul: fan, 5-semestr, A5, 1-variant, talaba F.I.Sh., guruh va sana.
+Maqsad va muhit: OT, VM resurslari, paket versiyalari, 127.0.0.1:8005 manzili; NoSQL emulyatori ishlatilganini yozing.
+D1–D6 dalillari: buyruq yoki request, HTTP status va to‘liq JSON javobi ko‘rinadigan skrinshot/matn. Har bir dalilga 1–2 gap izoh yozing.
+SQLda o‘zgargan WHERE sharti; ORMdagi xavfli satr; NoSQLdagi string va obyekt farqi. Uchta tuzatishning kod parchasi.
+Natija jadvali va 5–7 gaplik xulosa: sabab, ta’sir, himoya, qonuniy qidiruv saqlangani va tajriba chegarasi.
+Ko‘p uchraydigan muammolar
+Belgi
+Tekshirish / yechim
+Connection refused
+Server ishlayaptimi? Brauzer va curl server bilan bitta VMdami? Port 8005mi?
+ModuleNotFoundError
+source .venv/bin/activate; paketlarni shu venvga o‘rnating.
+SQL payload ishlamadi
+ASCII apostrof, -- va --data-urlencode ishlatilganini tekshiring; endpoint hali tuzatilmaganmi?
+NoSQLda kutilmagan natija
+JSONni bir tirnoqda yozing; $ne shell tomonidan o‘zgarmasin; Content-Type ni tekshiring.
+Tuzatishdan keyin eski natija
+Fayl saqlandimi? Serverni to‘xtatib qayta ishga tushiring; debug=False avtomatik reload qilmaydi.
+1.8. Baholash, nazorat savollari va manbalar
+Mezon
+Ball
+Muhit va boshlang‘ich nazoratlar to‘g‘ri bajarilgan
+1
+SQL OR va true/false sinovlari; sabab to‘g‘ri izohlangan
+2
+ORM xom SQL va xavfsiz ifoda solishtirilgan
+1.5
+NoSQL operatori, HTTP 400 va public filtri to‘g‘ri talqin qilingan
+1.5
+Uch funksiya tuzatilgan; avvalgi endpointlar va qonuniy kiritmalar qayta sinalgan
+3
+Hisobot dalillari va og‘zaki izoh aniq
+1
+Jami
+10
+Nazorat savollari
+SQLdagi ? placeholder nima uchun qo‘shtirnoqqa olinmaydi? (name,) oxiridagi vergul nimani bildiradi?
+Nega O'quv qo'llanma nomini rad etish to‘g‘ri himoya emas?
+Session.execute(text(query)) qachon xavfli? Parametrli ORM ifodasi undan nimasi bilan farq qiladi?
+Nega NoSQL $ne:null sinovida uchta yozuv chiqdi, SQL OR sinovida esa to‘rtta?
+Parametrli so‘rov public kabi ko‘rinish shartining o‘rnini bosa oladimi?
+Stored procedure va “faqat xatoni yashirish” nega avtomatik himoya kafolati emas?
+Qo‘shimcha topshiriq — asosiy 80 daqiqadan tashqari
+Boshlang‘ich zaif nusxada name qiymatini quyidagiga almashtiring: x' UNION SELECT 99,'TEST',1 -- . Ma’lum uchta ustun va sun’iy literal ishlatiladi. Kutiladigan natija ID=99, name=TEST, public=true bo‘lgan bitta qator; safe variantda count=0. Bu UNION natijasiga sun’iy qator qo‘shishni ko‘rsatadi. Jadvalga yangi yozuv kiritilmaydi. Tuzatilgan nusxani almashtirmang; kerak bo‘lsa server to‘xtatilgach app_before.py ni alohida ishga tushiring.
+Foydalanilgan rasmiy manbalar
+[1] OWASP — SQL Injection Prevention Cheat Sheet
+[2] OWASP — NoSQL Security Cheat Sheet
+[3] SQLAlchemy 2.0 — Using SELECT Statements
+[4] MongoDB Manual — $ne query predicate operator
+[5] mongomock — loyiha tavsifi va cheklovlari
+[6] Python — sqlite3, SQL placeholders
+Mavzu nomi foydalanuvchi taqdim etgan fan mavzulari hujjatidan olindi. Manbalar tekshirilgan sana: 07.09.2026. Quyidagi kod ushbu mashg‘ulot uchun tayyorlangan o‘quv namunasidir.
+1-ilova. app.py — A qism
+Importlar, ma’lumotlar, model va SQL funksiyalari. A, B va C qismlarni shu tartibda bitta faylga birlashtiring.
+import sqlite3import mongomockfrom flask import Flask, abort, jsonify, requestfrom sqlalchemy import create_engine, select, textfrom sqlalchemy import Boolean, Integer, Stringfrom sqlalchemy.orm import DeclarativeBase, Mappedfrom sqlalchemy.orm import Session, mapped_columnfrom sqlalchemy.pool import StaticPoolapp = Flask(__name__)app.config['MAX_CONTENT_LENGTH'] = 4096DATA = [    {'id': 1, 'name': 'Daftar', 'public': True},    {'id': 2, 'name': 'Qalam', 'public': True},    {'id': 3, 'name': "O'quv qo'llanma", 'public': True},    {'id': 4, 'name': 'Ichki loyiha', 'public': False},]SQL = 'SELECT id, name, public FROM products 'class Base(DeclarativeBase):    passclass Product(Base):    __tablename__ = 'products'    id: Mapped[int] = mapped_column(Integer, primary_key=True)    name: Mapped[str] = mapped_column(String(120))    public: Mapped[bool] = mapped_column(Boolean)engine = create_engine(    'sqlite://', poolclass=StaticPool,    connect_args={'check_same_thread': False})Base.metadata.create_all(engine)with engine.begin() as conn:    conn.execute(Product.__table__.insert(), DATA)collection = mongomock.MongoClient().a5.productscollection.insert_many([dict(row) for row in DATA])def scalar(value):    if not isinstance(value, str) or not 1 <= len(value) <= 120:        abort(400, description='name: 1..120 belgili matn kerak')    return valuedef sql_weak(name):    with engine.connect() as conn:        query = SQL + f"WHERE name = '{name}' AND public = 1"        return conn.exec_driver_sql(query).mappings().all()def sql_safe(name):    with engine.connect() as conn:        query = SQL + 'WHERE name = ? AND public = 1'        return conn.exec_driver_sql(query, (name,)).mappings().all()
+1-ilova. app.py — B qism
+ORM, NoSQL va JSON natija funksiyalari. A, B va C qismlarni shu tartibda bitta faylga birlashtiring.
+def orm_weak(name):    with Session(engine) as session:        query = SQL + f"WHERE name = '{name}' AND public = 1"        return session.execute(text(query)).mappings().all()def orm_safe(name):    with Session(engine) as session:        stmt = select(Product).where(            Product.name == name, Product.public.is_(True))        return [dict(id=p.id, name=p.name, public=p.public)                for p in session.scalars(stmt).all()]def nosql_weak(body):    if not isinstance(body, dict) or 'name' not in body:        abort(400, description='JSON obyektida name kerak')    query = {'name': body['name'], 'public': True}    return list(collection.find(query, {'_id': 0}))def nosql_safe(body):    if not isinstance(body, dict) or set(body) != {'name'}:        abort(400, description='Faqat name maydoni kerak')    name = scalar(body['name'])    query = {'name': {'$eq': name}, 'public': True}    return list(collection.find(query, {'_id': 0}))def result(rows):    items = sorted([dict(row) for row in rows], key=lambda x: x['id'])    for item in items:        item['public'] = bool(item['public'])    return jsonify(count=len(items), items=items)
+1-ilova. app.py — C qism
+HTTP endpointlar va serverni ishga tushirish. A, B va C qismlarni shu tartibda bitta faylga birlashtiring.
+@app.get('/')def home():    return jsonify(lab='A5 / 1-variant',                   endpoints=['/sql/weak', '/sql/safe',                              '/orm/weak', '/orm/safe',                              '/nosql/weak', '/nosql/safe'])@app.get('/<kind>/<mode>')def sql_route(kind, mode):    funcs = {('sql', 'weak'): sql_weak,             ('sql', 'safe'): sql_safe,             ('orm', 'weak'): orm_weak,             ('orm', 'safe'): orm_safe}    if (kind, mode) not in funcs:        abort(404)    name = scalar(request.args.get('name'))    from sqlalchemy.exc import SQLAlchemyError    try:        return result(funcs[kind, mode](name))    except (SQLAlchemyError, sqlite3.Error):        return jsonify(error='Sorov bajarilmadi'), 400@app.post('/nosql/<mode>')def nosql_route(mode):    if mode not in ('weak', 'safe'):        abort(404)    body = request.get_json(silent=True)    func = nosql_weak if mode == 'weak' else nosql_safe    return result(func(body))@app.errorhandler(400)def bad_request(error):    return jsonify(error=error.description), 400if __name__ == '__main__':    app.run(host='127.0.0.1', port=8005,            debug=False, threaded=False)
+Ilova boshlang‘ich zaif funksiyalarni ham o‘z ichiga oladi. 1.6-topshiriqda ularni tuzating. Faqat 127.0.0.1da ishga tushiring; bu kod ishlab chiqarish xizmati uchun tayyor ilova emas.
