@@ -482,7 +482,12 @@ Brauzerda (Firefox yoki Chrome) `http://127.0.0.1:8003/` manzilini oching. F12 t
    import hashlib, base64
    digest = hashlib.sha384(Path('vendor.js').read_bytes()).digest()
    print('sha384-' + base64.b64encode(digest).decode())
-   PYHASH
+    python3 - <<'PYHASH'
+   from pathlib import Path
+   import hashlib, base64
+   digest = hashlib.sha384(Path('vendor.js').read_bytes()).digest()
+   print('sha384-' + base64.b64encode(digest).decode())
+   PYHASH  PYHASH
    ```
 2. Chiqqan qiymatni nusxalab, `index.html`dagi skript tegiga yozing:
    ```html
@@ -517,21 +522,21 @@ Brauzerda (Firefox yoki Chrome) `http://127.0.0.1:8003/` manzilini oching. F12 t
 
 Laboratoriya tajribalari davomida olingan amaliy natijalar qaydnomasi:
 
-| № | Sinov nomi | Kutiladigan natija | Amaldagi natija va dalil |
-|:---:|---|---|---|
-| **1** | Boshlang‘ich sahifa va API | HTTP 200; JS fayllari to‘liq yuklangan | Status 200 OK; app.js va vendor.js xatosiz yuklandi |
-| **2** | `<b>A3</b>`: zaif / xavfsiz | `<b>` elementi / oddiy matn tuguni | Zaif tugmada A3 qalin ko‘rindi, xavfsiz tugmada teglar matn bo‘lib chiqdi |
-| **3** | DOM XSS: zaif tugma | Marker `DOM-XSS` bo‘ladi; `<img>` yaratiladi | Marker `DOM-XSS`ga o‘zgardi, tarmoqda 404 xatosi chiqdi |
-| **4** | DOM XSS: xavfsiz tugma | Marker `TAYYOR` qoladi; `<img>` yaratilmaydi | Marker `TAYYOR` holatida qoldi, matn oddiy ko‘rindi |
-| **5** | Fetch: DOM sinov matni | 200 OK; matn chiqadi; kod bajarilmaydi | Status 200; img kodi matn bo‘lib chiqdi, xavfsiz |
-| **6** | Fetch: bo‘sh kiritma | 400 Bad Request; natija maydoni bo‘sh | Interfeysda `Xato: HTTP 400` chiqdi, maydon tozalandi |
-| **7** | Fetch: `badshape` | 200 OK; tuzilma xatosi | `Xato: Javob tuzilmasi noto‘g‘ri.` xabari chiqdi |
-| **8** | API MIME turini buzish | 200 OK; JSON turi xatosi | `Xato: JSON javob kutilgan edi.` chiqdi |
-| **9** | Serverni to‘xtatish / tiklash | Tarmoq xatosi; tugma qayta faollashadi | Xatolik chiqdi, tugma `finally` bloki orqali yana faollashdi |
-| **10** | Omborlar: yangi mustaqil tab | local: `dark`; session: `null` | Yangi tabda `localStorage` qiymati qoldi, `sessionStorage` null bo‘ldi |
-| **11** | Vendor: token bor / o‘chirilgan | `DEMO-A3-NOT-SECRET` / `YOQ` | Token mavjud paytda o‘qidi, `removeItem`dan so‘ng `YOQ` chiqdi |
-| **12** | Zaif sink tuzatilgandan keyin | Marker `TAYYOR`; matn to‘liq chiqadi | Zaif tugma bosilganda ham marker o‘zgarmadi (`TAYYOR`) |
-| **13** | SRI: o‘zgargan / tiklangan fayl | Bloklanadi / ishlaydi (ixtiyoriy) | Izoh qo‘shilganda brauzer skriptni blokladi |
+|   №    | Sinov nomi                      | Kutiladigan natija                           | Amaldagi natija va dalil                                                  |
+| :----: | ------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
+| **1**  | Boshlang‘ich sahifa va API      | HTTP 200; JS fayllari to‘liq yuklangan       | Status 200 OK; app.js va vendor.js xatosiz yuklandi                       |
+| **2**  | `<b>A3</b>`: zaif / xavfsiz     | `<b>` elementi / oddiy matn tuguni           | Zaif tugmada A3 qalin ko‘rindi, xavfsiz tugmada teglar matn bo‘lib chiqdi |
+| **3**  | DOM XSS: zaif tugma             | Marker `DOM-XSS` bo‘ladi; `<img>` yaratiladi | Marker `DOM-XSS`ga o‘zgardi, tarmoqda 404 xatosi chiqdi                   |
+| **4**  | DOM XSS: xavfsiz tugma          | Marker `TAYYOR` qoladi; `<img>` yaratilmaydi | Marker `TAYYOR` holatida qoldi, matn oddiy ko‘rindi                       |
+| **5**  | Fetch: DOM sinov matni          | 200 OK; matn chiqadi; kod bajarilmaydi       | Status 200; img kodi matn bo‘lib chiqdi, xavfsiz                          |
+| **6**  | Fetch: bo‘sh kiritma            | 400 Bad Request; natija maydoni bo‘sh        | Interfeysda `Xato: HTTP 400` chiqdi, maydon tozalandi                     |
+| **7**  | Fetch: `badshape`               | 200 OK; tuzilma xatosi                       | `Xato: Javob tuzilmasi noto‘g‘ri.` xabari chiqdi                          |
+| **8**  | API MIME turini buzish          | 200 OK; JSON turi xatosi                     | `Xato: JSON javob kutilgan edi.` chiqdi                                   |
+| **9**  | Serverni to‘xtatish / tiklash   | Tarmoq xatosi; tugma qayta faollashadi       | Xatolik chiqdi, tugma `finally` bloki orqali yana faollashdi              |
+| **10** | Omborlar: yangi mustaqil tab    | local: `dark`; session: `null`               | Yangi tabda `localStorage` qiymati qoldi, `sessionStorage` null bo‘ldi    |
+| **11** | Vendor: token bor / o‘chirilgan | `DEMO-A3-NOT-SECRET` / `YOQ`                 | Token mavjud paytda o‘qidi, `removeItem`dan so‘ng `YOQ` chiqdi            |
+| **12** | Zaif sink tuzatilgandan keyin   | Marker `TAYYOR`; matn to‘liq chiqadi         | Zaif tugma bosilganda ham marker o‘zgarmadi (`TAYYOR`)                    |
+| **13** | SRI: o‘zgargan / tiklangan fayl | Bloklanadi / ishlaydi (ixtiyoriy)            | Izoh qo‘shilganda brauzer skriptni blokladi                               |
 
 ---
 
