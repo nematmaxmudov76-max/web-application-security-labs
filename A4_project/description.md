@@ -755,21 +755,21 @@ Oddiy rejimda sessiya 1200 soniya (20 daqiqa) yashaydi. Sinovni tez o‘tkazish 
 
 Quyidagi jadval laboratoriya davomida o‘tkazilgan barcha amaliy sinovlarning yakuniy natijalarini jamlaydi:
 
-| № | Tekshiruv Nomi va Sharti | Kutiladigan Natija | Amaldagi Natija va Dalil Asosi |
-| :---: | :--- | :--- | :--- |
-| **1** | Cookie yo‘q: `/api/me` | `401 Unauthorized` | **401 Unauthorized** (`error: Avval tizimga kiring.`) — Anonim so‘rov rad etildi. |
-| **2** | Mavjud/noma’lum login, xato parol | `401; bir xil xabar` | **401 Unauthorized** (`error: Login yoki parol xato.`) — Username Enumeration himoyasi. |
-| **3** | To‘g‘ri login (`ali` / `Ali-A4-Only!`) | `200; SID yangilanadi` | **200 OK** — `anon.cookies` va `ali.cookies` fayllaridagi `a4_sid` mutlaqo yangilandi. |
-| **4** | Cookie atributlari (`a4_sid`) | `HttpOnly; SameSite=Lax` | **HttpOnly=True; SameSite=Lax; Path=/; secure=False** — Brauzer JS o‘qiy olmaydi. |
-| **5** | Ali $\rightarrow$ `/api/admin?role=admin` | `403 Forbidden` | **403 Forbidden** (`error: Administrator huquqi kerak.`) — URL parametri rolni o‘zgartirmaydi. |
-| **6** | Ali $\rightarrow$ `101` va `102` (xavfsiz rejim) | `200 / 403` | **101: 200 OK** (o‘z hujjati), **102: 403 Forbidden** (Valining hujjati rad etildi). |
-| **7** | Vali $\rightarrow$ `101` va `102` (xavfsiz rejim) | `403 / 200` | **101: 403 Forbidden**, **102: 200 OK** — Har bir talaba faqat o‘z hujjatiga ega. |
-| **8** | Admin $\rightarrow$ `101` / `102` / `/api/admin` | `200 / 200 / 200` | **Barchasi 200 OK** — Administrator barcha hujjatlar va hisobotni o‘qish vakolatiga ega. |
-| **9** | Ali $\rightarrow$ `102` (zaif rejim `--weak-authz`) | `200 — zaiflik dalili` | **200 OK** (`Valining oquv hujjati`) — **BOLA / IDOR zaifligi amalda isbotlandi**. |
-| **10** | Ali $\rightarrow$ `102` (kod tuzatilgan rejim) | `403; o‘z hujjati 200` | **102: 403 Forbidden**, **101: 200 OK** — `--weak-authz` ostida ham IDOR bartaraf etildi. |
-| **11** | CSRFsiz logout so‘rovi | `403; sessiya saqlanadi` | **403 Forbidden** (`error: CSRF tekshiruvi bajarilmadi.`) — Sessiya faol qoldi. |
-| **12** | To‘g‘ri logout; eski cookie replay | `200; keyingi /me 401` | **Logout: 200 OK**, **Replay /me: 401 Unauthorized** — Server sessiyani bekor qildi. |
-| **13** | 20 soniyalik sessiya tugashi (`--ttl 20`) | `/me: avval 200, keyin 401` | **Dastlab 200 OK**, **sleep 22 dan so‘ng 401 Unauthorized** — Sessiya vaqti tugadi. |
+|   №    | Tekshiruv Nomi va Sharti                            | Kutiladigan Natija          | Amaldagi Natija va Dalil Asosi                                                                 |
+| :----: | :-------------------------------------------------- | :-------------------------- | :--------------------------------------------------------------------------------------------- |
+| **1**  | Cookie yo‘q: `/api/me`                              | `401 Unauthorized`          | **401 Unauthorized** (`error: Avval tizimga kiring.`) — Anonim so‘rov rad etildi.              |
+| **2**  | Mavjud/noma’lum login, xato parol                   | `401; bir xil xabar`        | **401 Unauthorized** (`error: Login yoki parol xato.`) — Username Enumeration himoyasi.        |
+| **3**  | To‘g‘ri login (`ali` / `Ali-A4-Only!`)              | `200; SID yangilanadi`      | **200 OK** — `anon.cookies` va `ali.cookies` fayllaridagi `a4_sid` mutlaqo yangilandi.         |
+| **4**  | Cookie atributlari (`a4_sid`)                       | `HttpOnly; SameSite=Lax`    | **HttpOnly=True; SameSite=Lax; Path=/; secure=False** — Brauzer JS o‘qiy olmaydi.              |
+| **5**  | Ali $\rightarrow$ `/api/admin?role=admin`           | `403 Forbidden`             | **403 Forbidden** (`error: Administrator huquqi kerak.`) — URL parametri rolni o‘zgartirmaydi. |
+| **6**  | Ali $\rightarrow$ `101` va `102` (xavfsiz rejim)    | `200 / 403`                 | **101: 200 OK** (o‘z hujjati), **102: 403 Forbidden** (Valining hujjati rad etildi).           |
+| **7**  | Vali $\rightarrow$ `101` va `102` (xavfsiz rejim)   | `403 / 200`                 | **101: 403 Forbidden**, **102: 200 OK** — Har bir talaba faqat o‘z hujjatiga ega.              |
+| **8**  | Admin $\rightarrow$ `101` / `102` / `/api/admin`    | `200 / 200 / 200`           | **Barchasi 200 OK** — Administrator barcha hujjatlar va hisobotni o‘qish vakolatiga ega.       |
+| **9**  | Ali $\rightarrow$ `102` (zaif rejim `--weak-authz`) | `200 — zaiflik dalili`      | **200 OK** (`Valining oquv hujjati`) — **BOLA / IDOR zaifligi amalda isbotlandi**.             |
+| **10** | Ali $\rightarrow$ `102` (kod tuzatilgan rejim)      | `403; o‘z hujjati 200`      | **102: 403 Forbidden**, **101: 200 OK** — `--weak-authz` ostida ham IDOR bartaraf etildi.      |
+| **11** | CSRFsiz logout so‘rovi                              | `403; sessiya saqlanadi`    | **403 Forbidden** (`error: CSRF tekshiruvi bajarilmadi.`) — Sessiya faol qoldi.                |
+| **12** | To‘g‘ri logout; eski cookie replay                  | `200; keyingi /me 401`      | **Logout: 200 OK**, **Replay /me: 401 Unauthorized** — Server sessiyani bekor qildi.           |
+| **13** | 20 soniyalik sessiya tugashi (`--ttl 20`)           | `/me: avval 200, keyin 401` | **Dastlab 200 OK**, **sleep 22 dan so‘ng 401 Unauthorized** — Sessiya vaqti tugadi.            |
 
 ---
 
