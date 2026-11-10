@@ -789,16 +789,16 @@ curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
 
 ### 3.11. Natijalar jadvali (Oldin va Keyin holati)
 
-| Sinov turi va Kiritma (Payload) | Tuzatishdan oldin (`/weak`) | Tuzatishdan keyin (`/weak`) | Natija holati |
-| :--- | :--- | :--- | :--- |
-| **SQL:** `name=Daftar` | HTTP 200; count: 1; ID=1 | HTTP 200; count: 1; ID=1 | Qonuniy qidiruv saqlangan |
-| **SQL:** `name=Daftar' OR 1=1 -- ` | **HTTP 200; count: 4; ID=1–4** | **HTTP 200; count: 0** | **Zaiflik bartaraf etildi** |
-| **SQL:** `name=O'quv qo'llanma` | HTTP 400; Xato (buzildi) | HTTP 200; count: 1; ID=3 | Apostrof xavfsiz ishlamoqda |
-| **ORM:** `name=Daftar' OR 1=1 -- ` | **HTTP 200; count: 4; ID=1–4** | **HTTP 200; count: 0** | **Zaiflik bartaraf etildi** |
-| **ORM:** `name=O'quv qo'llanma` | HTTP 400; Xato (buzildi) | HTTP 200; count: 1; ID=3 | Model ifodasi to‘g‘ri ishladi |
-| **NoSQL:** `{"name": "Daftar"}` | HTTP 200; count: 1; ID=1 | HTTP 200; count: 1; ID=1 | Qonuniy JSON saqlangan |
-| **NoSQL:** `{"name":{"$ne":null}}` | **HTTP 200; count: 3; ID=1–3** | **HTTP 400; Error** | **Operator inyeksiyasi to‘xtatildi** |
-| **SQL/ORM/NoSQL:** `Ichki loyiha` | HTTP 200; count: 0 | HTTP 200; count: 0 | Maxfiy yozuv himoyalangan |
+| Sinov turi va Kiritma (Payload)    | Tuzatishdan oldin (`/weak`)    | Tuzatishdan keyin (`/weak`) | Natija holati                        |
+| :--------------------------------- | :----------------------------- | :-------------------------- | :----------------------------------- |
+| **SQL:** `name=Daftar`             | HTTP 200; count: 1; ID=1       | HTTP 200; count: 1; ID=1    | Qonuniy qidiruv saqlangan            |
+| **SQL:** `name=Daftar' OR 1=1 -- ` | **HTTP 200; count: 4; ID=1–4** | **HTTP 200; count: 0**      | **Zaiflik bartaraf etildi**          |
+| **SQL:** `name=O'quv qo'llanma`    | HTTP 400; Xato (buzildi)       | HTTP 200; count: 1; ID=3    | Apostrof xavfsiz ishlamoqda          |
+| **ORM:** `name=Daftar' OR 1=1 -- ` | **HTTP 200; count: 4; ID=1–4** | **HTTP 200; count: 0**      | **Zaiflik bartaraf etildi**          |
+| **ORM:** `name=O'quv qo'llanma`    | HTTP 400; Xato (buzildi)       | HTTP 200; count: 1; ID=3    | Model ifodasi to‘g‘ri ishladi        |
+| **NoSQL:** `{"name": "Daftar"}`    | HTTP 200; count: 1; ID=1       | HTTP 200; count: 1; ID=1    | Qonuniy JSON saqlangan               |
+| **NoSQL:** `{"name":{"$ne":null}}` | **HTTP 200; count: 3; ID=1–3** | **HTTP 400; Error**         | **Operator inyeksiyasi to‘xtatildi** |
+| **SQL/ORM/NoSQL:** `Ichki loyiha`  | HTTP 200; count: 0             | HTTP 200; count: 0          | Maxfiy yozuv himoyalangan            |
 
 ---
 
@@ -903,3 +903,7 @@ Hisobot individual DOCX yoki PDF formatida tayyorlanadi va quyidagilarni o‘z i
    - **CWE-89:** Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection').
    - **CWE-943:** Improper Neutralization of Special Elements in Data Query Logic ('NoSQL Injection').
    - **CWE-564:** SQL Injection: Hibernate / ORM.
+
+
+
+qayssi protoko, qayssi domen, qayssi ip adres, qayssi portga  

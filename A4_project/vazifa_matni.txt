@@ -1,0 +1,383 @@
+VEB DASTURLAR XAVFSIZLIGI
+A4. Server tomoni arxitekturasi, autentifikatsiya va avtorizatsiya
+1-VARIANT — Talabalar hujjatlari portalida sessiya, rollar va obyektga kirish huquqlarini tekshirish
+Mashg‘ulot maqsadi. Talaba autentifikatsiya bilan avtorizatsiyani ajratadi; serverda parol xeshini tekshirish va sessiya yaratish jarayonini kuzatadi; talaba hamda administrator huquqlarini taqqoslaydi. Obyekt egasi tekshirilmagan holatni aniqlab, kodni tuzatadi; chiqish va amal qilish muddati tugaganda sessiyaning bekor bo‘lishini tekshiradi.
+Kutiladigan natija. Talaba 401 va 403 javoblarini to‘g‘ri talqin qiladi, sessiya identifikatori kirishdan keyin yangilanishini ko‘rsatadi, ruxsat matritsasini sinovlar bilan to‘ldiradi. Himoya faqat interfeysda emas, serverning har bir tegishli so‘rovida bajarilganini dalil bilan asoslaydi.
+Ko‘rsatkich
+Qiymat
+Semestr / variant
+Faqat 5-semestr / A4 / 1-variant
+Tavsiya etilgan vaqt
+80 daqiqa; VM, Flask va kod fayllari oldindan tayyorlanadi
+Kompyuter xonasi
+30 ta Windows 11; 8 yadroli CPU; 32 GB RAM; 1 TB SSD; LAN va internet
+Virtual muhit
+VMware Workstation; Ubuntu Desktop 24.04 LTS; 4 vCPU, 8 GB RAM, obrazdagi disk
+Laboratoriya manzili
+http://127.0.0.1:8004/ — brauzer, curl va server bitta VM ichida
+O‘quv ma’lumotlari
+Ali, Vali va administrator; 101 va 102 raqamli ikki sun’iy hujjat
+Baholash
+10 ball; individual hisobot va qisqa himoya
+0 Talaba bajaradigan dastlabki tayyorgarlik
+O‘qituvchi ishlaydigan tayyor VMware obrazini fayl serverga joylashtiradi. VMware o‘rnatish, obrazni nusxalash, hisoblar, proksi, paketlar, kod, sinov, snapshot va hisobotni talaba mustaqil bajaradi. Dastlabki tayyorgarlik 60–90 daqiqa yoki zarur qo‘shimcha vaqt oladi; asosiy 80 daqiqaga kirmaydi.
+0.1 Fayl serverga Windows orqali kirish
+Windowsda Win+R yoki File Explorer manzil satrida quyidagi SMB yo‘lni oching. Bu brauzer uchun HTTP manzil emas.
+\\172.18.233.234\files
+Windows Security oynasida login fileuser va parol 1234567 kiriting. Bu ma’lumotlar faqat SMB ulanishi uchun; Ubuntu yoki proksi paroli emas. Ubuntu ichida obraz bilan berilgan sudo huquqli hisobdan foydalaning.
+1-rasm. Fayl serverga kirish oynasi
+0.2 Dasturlar va tayyor obrazni tanlash
+Dasturlar papkasidan VMware-workstation-full-17.6.4.exe va Ubuntu_24.04_VM.7z fayllarini Windowsning lokal diskiga nusxalang. Ubuntu_24.04_VM.7z — brauzerli Desktop; ushbu fan ishlari uchun shu obraz tanlanadi. UbuntuServer_24.04_VM.7z fayli Server muhitiga tegishli.
+2-rasm. Dasturlar papkasidagi VMware va Ubuntu obrazlari
+ISO papkasi serverda mavjud, lekin bu ishda Linuxni ISO orqali o‘rnatish bajarilmaydi. Boshqa operatsion tizim talab qilinsa, keyin joylashtiriladigan tegishli tayyor VMware obrazi olinadi; uning nomi oldindan taxmin qilinmaydi.
+3-rasm. ISO papkasining ko‘rinishi
+0.3 VMware va individual nusxani ochish
+1. VMware o‘rnatgichini Windows administrator huquqi bilan ishga tushiring. O‘rnatish tugagach zarur bo‘lsa kompyuterni qayta yuklang. Obraz arxivini 7-Zip orqali D:\Veb-A4-LAB\VM papkasiga to‘liq oching; arxiv ichidan yoki tarmoq papkasidan VMni ishga tushirmang.
+2. VMware → File → Open orqali ochilgan papkadagi .vmx faylini tanlang. VM nomini Veb-A4-LAB deb belgilang. Birinchi ishga tushishda “I copied it” tanlansin; har talabaning nusxasi va MAC manzili alohida bo‘ladi.
+3. VM o‘chiq holatda Settings orqali 4 vCPU va 8 GB RAM belgilang. Obrazdagi virtual disk hajmini saqlang, kichraytirmang. Diskda ochilgan obraz va snapshot uchun yetarli joy qoldiring. Brauzer, curl va server bir Ubuntu VM ichida ishlaydi.
+4. Ubuntu konsoliga kirib terminalni oching. Windowsdagi 127.0.0.1 VMga olib bormaydi. Quyidagi buyruqlarni Ubuntu Bashda bajaring:
+sudo hostnamectl set-hostname veb-a4-labwhoamiidsudo -vdate -Is
+0.4 Vaqtinchalik NAT va universitet proksisi
+VM Settings → Network Adapter → NAT tanlang; paketlar yuklanayotganda Connected yoqilgan bo‘lsin. Bridged, port forwarding va Windows Internet Connection Sharing yoqilmaydi. 172.18.1.1:2500 — proksi manzili, VM IPsi yoki gatewayi emas.
+Har yangi paket o‘rnatish terminalida quyidagi export buyruqlarini qayta bajaring. APT uchun alohida doimiy konfiguratsiya keyingi blokda berilgan.
+export http_proxy="http://172.18.1.1:2500"export https_proxy="http://172.18.1.1:2500"export HTTP_PROXY="http://172.18.1.1:2500"export HTTPS_PROXY="http://172.18.1.1:2500"export no_proxy="localhost,127.0.0.1,::1,app.a6.test,evil.a6.test,a9.test,wrong.test"export NO_PROXY="$no_proxy"curl -I https://ubuntu.com
+APT sozlamasi uchun sudo nano /etc/apt/apt.conf.d/99proxy buyrug‘ini bajaring. Mavjud fayl bo‘lsa avval mazmunini tekshiring; quyidagi uch satrni saqlang:
+Acquire::http::Proxy  "http://172.18.1.1:2500";Acquire::https::Proxy "http://172.18.1.1:2500";Acquire::ftp::Proxy   "http://172.18.1.1:2500";
+99proxy faylini saqlang va nano oynasidan chiqing. Quyidagi buyruqlar fayl mazmuni emas; ularni Ubuntu terminalida bajaring:
+apt-config dump | grep -i proxysudo apt updatesudo apt install -y python3 curl nano open-vm-tools open-vm-tools-desktop
+0.5 Firefox va mashg‘ulot paketlarini tayyorlash
+Firefoxni menyudan ochib tekshiring. Mavjud bo‘lsa qayta o‘rnatmang. Firefox yo‘q bo‘lsa, APT va terminal exportlari snapd xizmatiga avtomatik o‘tmasligini hisobga olib, quyidagi xizmat konfiguratsiyasini yarating:
+sudo apt install -y snapdsudo mkdir -p /etc/systemd/system/snapd.service.dsudo nano /etc/systemd/system/snapd.service.d/veb-proxy.conf
+veb-proxy.conf fayliga faqat quyidagi uchta Environment satri va [Service] sarlavhasini yozing:
+[Service]Environment="HTTP_PROXY=http://172.18.1.1:2500"Environment="HTTPS_PROXY=http://172.18.1.1:2500"Environment="NO_PROXY=localhost,127.0.0.1,::1"
+Faylni saqlab, muharrirdan chiqing. Endi terminalda xizmatni yangilang va Firefoxni o‘rnating:
+sudo systemctl daemon-reloadsudo systemctl restart snapdsudo snap install firefoxfirefox --version
+Keyingi muhitni tayyorlash bo‘limidagi apt va pip buyruqlarini NAT hali ulangan paytda bajaring. pip ishlatilgan variantda .venvni faollashtiring; sudo pip ishlatmang. requirements-lock.txt va haqiqiy versiyalarni saqlang. Yuklash xato bersa proksi/NAT va vaqtni tekshiring; paketlar tayyor bo‘lmaguncha tajribani boshlamang.
+0.6 Lokal tajribaga o‘tish va dalillarni chiqarish
+Barcha paketlar va kodlar tayyorlangach VMni o‘chiring. Har bir Network Adapter uchun Connected va Connect at power on belgilarini olib tashlang. Alohida laboratoriya adapteri kerak emas: barcha xizmatlar 127.0.0.1da ishlaydi. VMni qayta boshlang; Firefox → Settings → Network Settings → No proxy tanlang. curl sinovlarida --noproxy "*" ishlatiladi. A6dagi lokal domen nomlari saqlanadi.
+VM o‘chiq paytda VM → Snapshot → Take Snapshot orqali Veb-A4-base yarating. Kod va konfiguratsiyani hujjatdagi boshlang‘ich rejimga tayyorlang. Snapshotga qaytishdan oldin hisobot va dalillarni Windowsga eksport qiling. Ish oxirida tiklashni talaba o‘zi bajaradi; snapshot nusxa olish o‘rnini bosmaydi.
+Windowsda D:\Veb-A4-LAB\Report papkasini yarating. VM Settings → Options → Shared Folders → Always enabled → Add orqali faqat shu papkani VebA4 nomi bilan ulang. Ubuntu ichida quyidagilarni bajaring:
+vmware-hgfsclientsudo mkdir -p /mnt/veba4sharesudo vmhgfs-fuse .host:/VebA4 /mnt/veba4share \  -o allow_other,uid=$(id -u),gid=$(id -g)touch /mnt/veba4share/export-check.txt
+vmware-hgfsclient chiqishida ulashilgan nom, Windows papkasida export-check.txt ko‘rinsin. Mountpoint oldin ulangan bo‘lsa qayta mount qilmang. Hisobot, kerakli kod va dalillarni shu katalogga nusxalang; token, cookie va yopiq kalitlarni umumiy papkaga chiqarmang.
+P1 — tayyor obraz va VMware nusxasi; P2 — proksi/APT va paket versiyalari; P3 — uzilgan adapterlar hamda lokal xizmat; P4 — snapshot va Shared Folders dalillarini hisobotga qo‘shing. Kod bloklari och kulrang, muhim manzil va sozlamalar och sariq fon bilan ajratilgan.
+Asosiy amaliy mashg‘ulot
+Zarur vositalar
+Python 3, venv, Flask 3.1.3 va Flask bilan o‘rnatiladigan Werkzeug — server, marshrutlar, HTML shablon va parol xeshlari.
+Firefox Developer Tools — Network va Storage; curl — cookie bilan HTTP sinovlari; nano — kod tahriri.
+A1–A3dagi HTTP, cookie, origin, kiritma va mijoz tomoni xavfsizligi bo‘yicha boshlang‘ich bilimlar.
+Oldingi muhitdan foydalanish. A1–A3dagi Ubuntu VMni davom ettiring. A4 ~/websec/A4 papkasida va 8004-portda ishlaydi. Har bir ish joyi o‘z loopback manziliga ega; boshqa kompyuterning akkaunti yoki xizmatini tekshirish talab qilinmaydi.
+Talaba 0-bo‘lim bo‘yicha tayyor Ubuntu Desktop VMware obrazini ochadi, universitet proksisi orqali paketlarni o‘rnatadi va ilovalardagi kod fayllarini o‘zi yaratadi. Nusxa olish, paket yuklash va kod tayyorlash asosiy 80 daqiqadan oldin bajariladi; dastlabki tayyorgarlikka 60–90 daqiqa yoki zarur qo‘shimcha vaqt ajrating.
+Nazariy tayanch: arxitektura va xavfsizlik qoidalari
+Autentifikatsiya “Kim kiryapti?” savoliga, avtorizatsiya esa “Bu foydalanuvchi shu amalni bajara oladimi?” savoliga javob beradi. To‘g‘ri parol bilan kirish barcha hujjatlarga ruxsat berilganini anglatmaydi. Foydalanuvchini aniqlash, rolni tekshirish va obyekt egasini tekshirish alohida bosqichlardir. [1, 2]
+Qatlam
+Ushbu laboratoriyadagi qism
+Vazifasi
+Modelga tegishli ma’lumotlar
+USERS, DOCS, SESSIONS
+Foydalanuvchi, hujjat va sessiya holati
+Controller mantiqi
+login, me, admin, document, logout
+HTTP so‘rovini tekshirish va qaror chiqarish
+View
+templates/index.html
+Forma va havolalarni ko‘rsatish
+JSON API
+/api/me, /api/docs/…, /api/admin
+Natijani HTTP status va JSON bilan berish
+Kod o‘qishni yengillashtirish uchun server mantiqi bitta app.pyga joylangan. Bu MVC vazifalarini tushuntiruvchi kichik namuna; to‘liq ko‘p modulli arxitektura emas. JSON endpointlari HTTP API sifatida ishlaydi; serverdagi sessiya holati mavjudligi sabab ularni “to‘liq stateless REST” deb atamaymiz.
+Parol va sessiya
+Werkzeug generate_password_hash parol uchun salt qo‘shilgan scrypt xeshini yaratadi; check_password_hash kiritilgan parolni tekshiradi. Xeshni “ochib parol olish” bajarilmaydi. Bir xil parol qayta xeshlansa salt sabab natijalar farqlanishi mumkin. Koddagi uchta ochiq parol faqat namuna akkauntlarini yaratish uchun yozilgan. [3]
+Brauzerdagi a4_sid cookie ichida taxmin qilish qiyin bo‘lgan tasodifiy identifikator saqlanadi. Foydalanuvchi nomi, CSRF token va tugash vaqti serverdagi SESSIONS jadvalida turadi. Bu Flaskning standart imzolangan cookie sessiyasidan alohida, server xotirasidagi o‘quv modelidir. [4]
+Muhim cheklovlar
+Kirish muvaffaqiyatli bo‘lganda eski SID o‘chiriladi va yangisi yaratiladi. Chiqishda cookie bilan birga server yozuvi ham bekor qilinadi.
+Rol USERSdan, egasi DOCSdan olinadi. URLdagi role=admin qiymati yoki havolani yashirish ruxsat qarorini belgilamaydi.
+HttpOnly cookie qiymatini JavaScriptdan o‘qishni cheklaydi; SameSite=Lax ayrim saytlararo yuborishlarni cheklaydi. Login va logout uchun qo‘shimcha CSRF token tekshiruvi bor. [5, 6]
+Lokal HTTP istisnosi. Cookie secure=False faqat 127.0.0.1dagi ushbu HTTP laboratoriyasi uchun qo‘yilgan. Haqiqiy xizmatda HTTPS va Secure talab qilinadi. In-memory sessiyalar server qayta ishga tushganda yo‘qoladi; ko‘p worker, doimiy baza, login tezligini cheklash va ishlab chiqarish muhiti bu variantda joriy etilmagan.
+1.1. Muhitni tayyorlash va ilovani ishga tushirish
+0-bo‘limdagi tayyor Ubuntu_24.04_VM.7z obrazidan foydalaning. VMda shu hujjatdagi vCPU va RAM qiymatlarini belgilang; obrazning mavjud virtual diskini saqlang. Ubuntu ichida Ctrl+Alt+T orqali Bash terminalini oching. Paketlarni yuklashda vaqtinchalik NAT va 0-bo‘limdagi proksi ishlatiladi; lokal sinovdan oldin NAT uziladi.
+sudo apt updatesudo apt install -y python3 python3-venv python3-pip curl nanomkdir -p ~/websec/A4/templatescd ~/websec/A4python3 -m venv .venvsource .venv/bin/activatepython -m pip install Flask==3.1.3python -m pip freeze > requirements-lock.txtpython -m pip show Flask Werkzeug
+1-ilovaning A, B va C qismlarini tartib bilan bitta app.py fayliga ko‘chiring. 2-ilovani templates/index.html fayliga yozing. Barcha fayllar UTF-8 bo‘lsin; Python chekinishlarini saqlang. nano: Ctrl+O, Enter — saqlash; Ctrl+X — chiqish.
+nano app.pynano templates/index.htmlpython -m py_compile app.pypython app.py
+Dastlab xavfsiz rejim ishlaydi: WEAK_AUTHZ=False. Brauzerni Ubuntu VM ichida ochib http://127.0.0.1:8004/ manziliga kiring. Sahifada kirish formasi, hujjat havolalari va chiqish tugmasi ko‘rinsin. Server terminalini ochiq qoldiring.
+Login
+Faqat laboratoriya paroli
+Rol / shaxsiy hujjat
+ali
+Ali-A4-Only!
+student; id=1; 101-hujjat
+vali
+Vali-A4-Only!
+student; id=2; 102-hujjat
+admin
+Admin-A4-Only!
+admin; id=3; ikkala hujjatga ruxsat
+1.2. Dastlabki HTTP tekshiruvi
+Ctrl+Alt+T orqali ikkinchi terminalni oching. Quyidagi A4_BASE o‘zgaruvchisini shu terminalda saqlang; keyingi curl buyruqlari ham shu yerda bajariladi. Brauzer cookie ombori va curl cookie fayllari bir-biridan mustaqil.
+cd ~/websec/A4A4_BASE=http://127.0.0.1:8004curl --noproxy "*" -i "$A4_BASE/api/me"curl --noproxy "*" -i "$A4_BASE/api/admin"
+Cookie yuborilmagani uchun ikkala javob 401 bo‘ladi. Firefoxda F12 → Networkni oching; Storage → Cookies orqali a4_sidni kuzatishga tayyorlaning. index.htmlni file:// orqali ochmang.
+Talaba kod va paketlarni o‘zi tayyorlaydi, NATni uzib Veb-A4-base snapshotini saqlaydi. Snapshotga qaytishdan oldin hisobot va dalillarni Shared Folders orqali Windows hostga ko‘chiring.
+1.3. Autentifikatsiya: to‘g‘ri va noto‘g‘ri kirish
+Firefox bosh sahifasida ali va noto‘g‘ri parol bilan kiring. Networkda /login javobi 401, matni “Login yoki parol xato.” bo‘lsin. Bosh sahifani manzil orqali qayta oching, mavjud bo‘lmagan login bilan takrorlang. Javob matni aynan bir xil bo‘lishi kerak. Bu xabar foydalanuvchi mavjudligini oshkor qilmaslikka yordam beradi; barcha vaqt farqlarini yo‘qotishni kafolatlamaydi. [1]
+Endi ali / Ali-A4-Only! bilan kiring. /login 200 qaytaradi. Brauzer JSON natijani ko‘rsatadi; manzil satrida bosh sahifani qayta oching, so‘ng “Mening rolim” havolasiga o‘ting. /api/me javobida id=1 va role=student chiqadi.
+curl uchun alohida sessiya yaratish
+Quyidagi blok anonim sessiya va unga tegishli CSRF token oladi, so‘ng login so‘rovini yuboradi. Parol sun’iy o‘quv qiymatidir. -b cookie o‘qiydi, -c esa javobdan yangilangan cookie yozadi.
+curl --noproxy "*" -s -c ali.cookies "$A4_BASE/api/csrf" > csrf.jsonA4_CSRF=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')cp ali.cookies anon.cookiescurl --noproxy "*" -i -b ali.cookies -c ali.cookies \  -H "X-CSRF-Token: $A4_CSRF" \  --data-urlencode 'username=ali' \  --data-urlencode 'password=Ali-A4-Only!' "$A4_BASE/login"
+Muvaffaqiyatli login javobidagi Set-Cookie sarlavhasini va ikki fayldagi SIDni solishtiring:
+cat anon.cookiescat ali.cookiescurl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/me"curl --noproxy "*" -i -b anon.cookies "$A4_BASE/api/me"
+anon.cookies va ali.cookies ichidagi a4_sid qiymatlari farqlanishi kerak. Yangi cookie bilan /api/me → 200; anonim eski cookie bilan → 401. Kodingizdagi SESSIONS.pop(sid, None) va issue_session(name) qatorlari eski sessiyani bekor qilib, yangi SID yaratadi.
+CSRF token va SIDni adashtirmang
+SID foydalanuvchi sessiyasini topishga xizmat qiladi va HttpOnly cookie bilan yuboriladi. CSRF token forma yoki X-CSRF-Token sarlavhasida yuboriladi; u shu sessiyaga tegishliligini tekshiradi. Login SID va CSRF tokenni yangilaydi, shuning uchun logout uchun tokenni keyin qayta olish kerak. [4, 6]
+Login so‘rovini CSRFsiz yuborsangiz, parol to‘g‘ri bo‘lsa ham 403 chiqadi. Bu autentifikatsiya muvaffaqiyatsizligi bilan bir xil sabab emas. D1 daliliga noto‘g‘ri/to‘g‘ri login, SID o‘zgarishi va cookie atributlarini kiriting.
+Sessiya qiymatlarini hisobotda to‘liq ochmang: birinchi va oxirgi bir necha belgini qoldirib, o‘rtasini yoping. HttpOnly cookie curl faylida #HttpOnly_ bilan boshlangan satrda ko‘rinishi mumkin; buni keraksiz izoh deb o‘chirib yubormang.
+1.4. Rol va obyekt darajasidagi ruxsat matritsasi
+Avval xavfsiz rejimdagi kutiladigan huquqlarni tekshiring. student roli administrator endpointiga kira olmaydi. Hujjatlar uchun esa student bo‘lish yetarli emas: hujjatning owner qiymati foydalanuvchi idsi bilan mos kelishi kerak. Administratorga bu variantda ikkala hujjatni o‘qish ruxsati berilgan.
+So‘rov
+Mehmon
+Ali
+Vali
+Admin
+/api/me
+401
+200
+200
+200
+/api/admin
+401
+403
+403
+200
+/api/docs/101
+401
+200
+403
+200
+/api/docs/102
+401
+403
+200
+200
+/api/docs/999
+401
+404
+404
+404
+curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/admin"curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/docs/101"curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/docs/102"curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/admin?role=admin"
+Ali uchun natijalar: 403, 200, 403, 403. role=admin so‘rov parametri serverdagi rolni o‘zgartirmaydi. Bosh sahifada administrator havolasi ko‘rinishi ham ushbu ruxsatni bermaydi. Huquq tekshiruvi endpoint ichida bajariladi. [2]
+Vali va administratorni alohida tekshirish
+Brauzerda bosh sahifani qayta ochib “Chiqish”ni bosing, yana bosh sahifadan vali sifatida kiring. 101 → 403, 102 → 200 bo‘lishini tekshiring. Shu tartibda admin sifatida kirib, ikkala hujjat va administrator hisobotida 200 oling. Brauzerdagi kirishlar ali.cookies faylini o‘zgartirmaydi.
+D2: ruxsat matritsasini haqiqiy natijalar bilan to‘ldiring. 401 — faol autentifikatsiya yo‘q; 403 — talab qilingan ruxsat yo‘q; 404 — bu laboratoriyada hujjat mavjud emas. Haqiqiy tizim ba’zan obyekt mavjudligini yashirish uchun ruxsatsiz holatga ham 404 qaytarishi mumkin.
+1.5. Boshqariladigan zaiflik: boshqa talabaning hujjati
+Server terminalida Ctrl+C bosing va zaif rejimni ishga tushiring. Qayta ishga tushirish barcha sessiyalarni yo‘qotadi. 1.3dagi curl login blokini takrorlab, Ali uchun yangi cookie oling:
+python app.py --weak-authz
+Ali sifatida /api/docs/102ni so‘rang: endi 200 va Valining o‘quv hujjati chiqadi. /api/admin hanuz 403. Demak, autentifikatsiya va rol nazorati borligi obyekt egasini tekshirish o‘rnini bosmaydi. D3ga zaif rejimdagi 102-hujjat natijasini saqlang.
+Bu misol obyekt darajasidagi kirish nazorati buzilishi, ya’ni IDOR/BOLA mazmunini ko‘rsatadi. Raqamli IDning o‘zi zaiflik emas; asosiy sabab so‘ralgan obyekt uchun ruxsat tekshiruvi chetlab o‘tilganidir. Faqat IDni uzun yoki tasodifiy qilish bu nazoratni almashtirmaydi. [2]
+1.6. Zaiflikni kodda tuzatish va qayta sinash
+Zaif natijani qayd etgach serverni to‘xtating. app.py nusxasini saqlang. document funksiyasidagi allowed qiymatini hisoblaydigan satrni saqlab, keyingi shartni almashtiring:
+cp app.py app.original.pynano app.py
+Avvalgi shart:
+if not app.config['WEAK_AUTHZ'] and not allowed:
+Tuzatilgan shart:
+if not allowed:
+Shart ostidagi return fail(403, …) satrining chekinishini saqlang. Endi ruxsatni tekshirish rejim bayrog‘iga bog‘liq bo‘lmaydi. Tuzatilgan kodni tekshirib, aynan zaif bayroq bilan ishga tushiring:
+python -m py_compile app.pypython app.py --weak-authz
+1.3dagi login blokini qayta bajaring. Ali uchun 101 → 200, 102 → 403, admin → 403; Vali uchun o‘z 102-hujjati → 200; administrator uchun ikkala hujjat → 200 bo‘lsin. --weak-authz turganiga qaramay boshqa egaga oid hujjat rad etilishi koddagi chetlab o‘tish olib tashlanganini ko‘rsatadi.
+Faqat --weak-authzni o‘chirib qayta ishga tushirish zaif tarmoqni koddan olib tashlamaydi. Ushbu topshiriqda haqiqiy tuzatish satrini va uning qayta sinovini ko‘rsatish talab etiladi. D4ga avvalgi/tuzatilgan shart va ruxsat matritsasining qayta tekshirilgan qismini qo‘shing.
+1.7. Cookie himoya atributlarini kuzatish
+Firefoxda bosh sahifani ochib kiring. Network → /login → Response Headers ichidagi Set-Cookieni ko‘ring; Storage → Cookiesda atributlarni tekshiring. Cookie nomi a4_sid, Path=/, HttpOnly va SameSite=Lax bo‘lishi kerak.
+Console oynasida document.cookie qiymatini ko‘ring: a4_sid ko‘rinmasligi kerak. Biroq shu sahifadan serverga yuborilgan odatiy so‘rovga brauzer cookie qo‘shadi. HttpOnly autentifikatsiyani yoki avtorizatsiyani almashtirmaydi, faol XSSning barcha ta’sirini ham bartaraf etmaydi. [5]
+Cookie port bo‘yicha ajratilmaydi. Ushbu ish a4_sid nomidan foydalanadi; A1–A3 cookie nomlari bilan aralashtirmang. localhost va 127.0.0.1 hostlari esa alohida. Sinovlar davomida faqat ko‘rsatilgan hostni ishlating.
+secure=False holatini hisobotda lokal HTTP uchun berilgan istisno sifatida yozing. TLSni sozlamasdan bu atributni o‘zgartirish brauzer xatti-harakatiga ta’sir qilishi mumkin; ushbu darsda asosiy dalil cookie sarlavhasi va server tekshiruvidir.
+1.8. Chiqishdan keyin eski sessiyani qayta ishlatib ko‘rish
+Tuzatilgan server ishlayotganida Ali uchun faol curl sessiya yaratilgan bo‘lsin. Avval uning cookie faylidan nusxa oling. Bu o‘z o‘quv sessiyangizning nazorat nusxasi:
+cp ali.cookies replay.cookiescurl --noproxy "*" -i -b replay.cookies "$A4_BASE/api/me"curl --noproxy "*" -i -b ali.cookies -X POST "$A4_BASE/api/logout"
+Birinchi so‘rov 200, CSRFsiz logout 403 bo‘ladi. Endi joriy sessiyaning yangi CSRF tokenini oling va to‘g‘ri logout yuboring:
+curl --noproxy "*" -s -b ali.cookies -c ali.cookies "$A4_BASE/api/csrf" > csrf.jsonA4_CSRF=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')curl --noproxy "*" -i -b ali.cookies -c ali.cookies -X POST \  -H "X-CSRF-Token: $A4_CSRF" "$A4_BASE/api/logout"curl --noproxy "*" -i -b replay.cookies "$A4_BASE/api/me"
+To‘g‘ri logout → 200; o‘chirilmagan eski replay.cookies bilan /api/me → 401. Serverdagi SESSIONS.pop sessiyani bekor qilgani uchun brauzerda cookie nusxasi saqlanib qolsa ham u qayta ishlamaydi. Faqat mijoz cookie faylini o‘chirish bunday isbotni bermaydi. [4]
+1.9. Sessiya muddatini qisqa tajribada tekshirish
+Oddiy rejimda sessiyaning mutlaq muddati 1200 soniya — 20 daqiqa. So‘rovlar bu muddatni uzaytirmaydi. Qisqa sinov uchun serverni to‘xtatib, tuzatilgan kodni quyidagicha ishga tushiring:
+python app.py --ttl 20
+1.3dagi curl login blokini tezda bajaring. Muvaffaqiyatli login olingandan so‘ng 20 soniyadan oldin /api/me so‘rovi 200 qaytarsin. Keyin ikkinchi terminalda:
+sleep 22curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/me"
+Kutiladigan natija: 401. Shu tekshiruv orasida /api/csrfga kirmang va qayta login qilmang. Cookie faylda mavjud bo‘lishi mumkin; yaroqlilikni server tekshiradi. D5ga chiqishdan keyingi va muddat tugagandan keyingi natijalarni yozing.
+Sessiyaning hayot siklini xulosa qilish
+Anonim kirish: vaqtinchalik SID va CSRF yaratiladi; himoyalangan endpointlar hali 401 qaytaradi.
+To‘g‘ri login: eski SID o‘chiriladi, yangi autentifikatsiyalangan sessiya yaratiladi.
+Har so‘rov: SID mavjudligi va tugash vaqti tekshiriladi, keyin rol va obyekt huquqi baholanadi.
+Logout yoki muddat tugashi: server yozuvi bekor qilinadi. Server qayta ishga tushsa barcha in-memory sessiyalar yo‘qoladi.
+Tajriba tugagach serverni oddiy python app.py bilan qayta ishga tushiring; tuzatilgan app.py nusxasini saqlang.
+2. Topshiriqlar va natijalar jadvali
+Quyidagi jadvaldagi “Amaldagi natija” ustunini o‘z sinovingiz asosida to‘ldiring. Rejim, login va HTTP statusni aniq yozing; kutiladigan qiymatni tekshirmasdan natija sifatida ko‘chirmang.
+№
+Tekshiruv
+Kutiladigan natija
+Amaldagi natija / dalil
+1
+Cookie yo‘q: /api/me
+401
+________________
+2
+Mavjud/noma’lum login, xato parol
+401; bir xil xabar
+________________
+3
+To‘g‘ri login
+200; SID yangilanadi
+________________
+4
+Cookie atributlari
+HttpOnly; SameSite=Lax
+________________
+5
+Ali → admin?role=admin
+403
+________________
+6
+Ali → 101 / 102; xavfsiz rejim
+200 / 403
+________________
+7
+Vali → 101 / 102; xavfsiz rejim
+403 / 200
+________________
+8
+Admin → 101 / 102 / admin
+200 / 200 / 200
+________________
+9
+Ali → 102; zaif rejim
+200 — zaiflik dalili
+________________
+10
+Ali → 102; kod tuzatilgan
+403; o‘z hujjati 200
+________________
+11
+CSRFsiz logout
+403; sessiya saqlanadi
+________________
+12
+To‘g‘ri logout; eski cookie replay
+200; keyingi /me 401
+________________
+13
+20 soniyalik sessiya tugashi
+/me: avval 200, keyin 401
+________________
+Tahliliy vazifalar
+Ruxsat matritsasidan kamida ikki qarorni kod sharti bilan bog‘lab tushuntiring. Nima uchun student roli obyektga egalikni anglatmaydi?
+401, 403 va 404 javoblarining ushbu API uchun ma’nosini bittadan kuzatilgan misol bilan yozing.
+SID, CSRF token va parol xeshining vazifalarini ajrating. Qaysi biri brauzerda, qaysilari serverda saqlanishini belgilang.
+Cookie replay tajribasida nega cookie nusxasini logoutdan oldin olish kerakligini tushuntiring.
+Ish yakuni
+Hisobotni va tuzatilgan app.py hamda templates/index.htmlni saqlang. Sinov cookie fayllarini o‘chiring, Firefoxdagi a4_sidni tozalang va serverni Ctrl+C bilan to‘xtating. Asl zaif faylni faqat topshiriladigan taqqoslash dalili sifatida alohida belgilang.
+rm -f ali.cookies anon.cookies replay.cookies csrf.json
+Hisobotdagi xulosa shaxsiy kuzatuvga asoslangan 5–7 gapdan iborat bo‘lsin: aniqlangan sabab, kod tuzatishi, qayta sinov natijasi va qolgan cheklovlar.
+3. Hisobot, vaqt va baholash mezonlari
+Hisobot: A4_1_Familiya_Guruh.docx. Mavzu, maqsad, muhit versiyalari, natijalar jadvali, D1–D5 dalillar, kod o‘zgarishi va xulosani kiriting. Ekran tasvirida foydalanuvchi, endpoint va status tushunarli ko‘rinsin; sessiya qiymatini niqoblang.
+Dalil
+Talab
+D1
+Noto‘g‘ri/to‘g‘ri login; SID yangilanishi; cookie atributlari
+D2
+Rol va obyekt darajasidagi ruxsat matritsasi
+D3
+Zaif rejimda Alining 102-hujjatni olishi
+D4
+Kod tuzatishi va ayni so‘rovning 403 bo‘lishi
+D5
+Logoutdan keyin eski cookie va muddat tugashi: 401
+Tavsiya etilgan 80 daqiqalik taqsimot
+Bosqich
+Daqiqa
+Natija
+Muhitni tekshirish va ishga tushirish
+8
+Server va forma ishlaydi
+Login, CSRF va SID tajribasi
+14
+D1
+Rol va obyekt ruxsatlarini tekshirish
+16
+D2
+Zaif rejim, kod tuzatishi va qayta sinov
+18
+D3–D4
+Logout, replay va qisqa muddat sinovi
+14
+D5
+Hisobot va qisqa himoya
+10
+To‘ldirilgan natijalar va xulosa
+Baholash — jami 10 ball
+Mezon
+Ball
+Muhit, HTTP boshlang‘ich tekshiruvi
+1,0
+Autentifikatsiya, SID yangilanishi va cookie izohi
+2,0
+Rol va obyekt ruxsat matritsasi
+2,0
+Zaiflik sababi, kod tuzatishi va qayta sinov
+2,0
+Logout replay va muddat tugashi dalillari
+2,0
+Hisobot aniqligi va og‘zaki himoya
+1,0
+Himoya savollari
+To‘g‘ri parol nima uchun boshqa foydalanuvchi hujjatini ochishga yetmaydi?
+Login paytida SIDni almashtirish qaysi xavfni kamaytiradi?
+HttpOnly bo‘lsa ham brauzer so‘roviga cookie qo‘shiladimi?
+Logoutda faqat cookie o‘chirish bilan server sessiyasini o‘chirish farqi nima?
+JWT ishlatilsa obyekt darajasidagi ruxsat tekshiruvi kerak bo‘ladimi?
+Talaba: ____________________   Guruh: __________   Sana: __________O‘qituvchi qaydi: _________________________________________________Ball: ______ / 10
+4. Kengaytirish yo‘nalishlari va tezkor yordam
+M4da keltirilgan quyidagi texnologiyalar shu laboratoriyadagi parol va server sessiyasi modelidan farqlanadi. Ular ushbu variantda amalda joriy etilmagan; vazifa — ularning rolini to‘g‘ri ajratish va keyingi ishlar bilan bog‘lash.
+Texnologiya
+Vazifasi va ushbu ish bilan bog‘lanishi
+OAuth 2.0
+Resursga cheklangan vakolat berish tizimi; o‘z-o‘zicha foydalanuvchi login protokoli emas.
+OpenID Connect
+OAuth 2.0 ustidagi identifikatsiya qatlami; tashqi provayder orqali foydalanuvchini aniqlash. [7]
+JWT
+Claimlarni ifodalovchi token formati; imzo/shifr tekshiruvi va claim tekshiruvi kerak. Formatning o‘zi obyektga ruxsat bermaydi. [8]
+MFA
+Turli toifadagi omillardan foydalanish; ikki parol kiritishning o‘zi ikki omil emas. [9]
+WebAuthn / Passkeys
+Ochiq kalitli autentifikatsiya; WebAuthn relying party va origin bilan bog‘langan credentiallardan foydalanadi. Rol nazorati serverda qoladi. [10]
+Nosozliklarni bartaraf etish
+ModuleNotFoundError: server terminalida cd ~/websec/A4 va source .venv/bin/activate bajaring; python -m pip show Flask bilan muhitni tekshiring.
+TemplateNotFound: index.html aynan templates papkasida bo‘lsin. Kodning uch qismi bitta app.pyda va to‘g‘ri tartibda turishi kerak.
+Login yoki logout 403: CSRFni shu cookie fayli bilan qayta oling. Server qayta ishga tushsa yoki login yangilansa eski token yaroqsiz bo‘ladi. Brauzerda orqaga qaytib eski formani yuborish o‘rniga bosh sahifani qayta oching.
+Kutilmaganda 401: cookie fayli, host, sessiya muddati va server qayta ishga tushganini tekshiring. Kerak bo‘lsa login blokini takrorlang. Serverning oddiy muddati 20 daqiqa.
+Zaif rejimda ham 403: avval kod tuzatilgan bo‘lsa bu to‘g‘ri. Zaiflik dalilini original kodda, tuzatish dalilini yangi kodda oling.
+Kod o‘zgargan, natija o‘zgarmagan: use_reloader=False; serverni Ctrl+C bilan to‘xtatib qayta ishga tushiring, so‘ng qayta login qiling.
+Foydalanilgan manbalar
+Mavzu foydalanuvchi bergan fan dasturidagi A4/M4ga asoslandi; tuzilish A1–A3 va Kompyuter tarmoqlari A6 namunasiga moslandi. Rasmiy manbalarga murojaat: 07.09.2026.
+[1] OWASP — Authentication
+[2] OWASP — Authorization
+[3] Werkzeug — Security Helpers
+[4] OWASP — Session Management
+[5] Flask — Security Considerations
+[6] OWASP — CSRF Prevention
+[7] OpenID Foundation — How Connect Works
+[8] RFC 7519 — JWT
+[9] OWASP — Multifactor Authentication
+[10] W3C — WebAuthn
+1-ilova. app.py — A qism: model va sessiya yordamchilari
+A, B va C qismlaridagi barcha kodni tartib bilan bitta app.py fayliga yozing. Oradagi sahifa sarlavhalari va izoh matnlarini kodga qo‘shmang.
+import argparseimport secretsimport timefrom flask import Flask, request, jsonify, make_response, render_templatefrom werkzeug.exceptions import HTTPExceptionfrom werkzeug.security import generate_password_hash, check_password_hashapp = Flask(__name__)app.config.update(MAX_CONTENT_LENGTH=4096, TTL=1200, WEAK_AUTHZ=False)COOKIE = 'a4_sid'SESSIONS = {}USERS = {    'ali': {'id': 1, 'role': 'student',            'hash': generate_password_hash('Ali-A4-Only!')},    'vali': {'id': 2, 'role': 'student',             'hash': generate_password_hash('Vali-A4-Only!')},    'admin': {'id': 3, 'role': 'admin',              'hash': generate_password_hash('Admin-A4-Only!')}}DUMMY_HASH = generate_password_hash('Unused-A4-Value!')DOCS = {101: {'owner': 1, 'text': 'Alining oquv hujjati'},        102: {'owner': 2, 'text': 'Valining oquv hujjati'}}def get_session():    sid = request.cookies.get(COOKIE, '')    record = SESSIONS.get(sid)    if record and time.monotonic() >= record['expires']:        SESSIONS.pop(sid, None)        record = None    return sid, recorddef issue_session(username=None):    now = time.monotonic()    for key in list(SESSIONS):        if SESSIONS[key]['expires'] <= now:            SESSIONS.pop(key, None)    sid = secrets.token_urlsafe(32)    record = dict(username=username, csrf=secrets.token_urlsafe(32),                  expires=now + app.config['TTL'])    SESSIONS[sid] = record    return sid, recorddef attach_cookie(response, sid):    response.set_cookie(COOKIE, sid, httponly=True, samesite='Lax',                        secure=False, path='/')  # Local HTTP only.    return responsedef fail(status, message):    return jsonify(error=message), statusdef valid_csrf(record):    token = request.headers.get('X-CSRF-Token') or request.form.get('csrf', '')    return bool(record and token and                secrets.compare_digest(record['csrf'].encode(), token.encode()))def current_user():    _, record = get_session()    return USERS.get(record['username']) if record else None
+1-ilova davomi. B qism — login va rol nazorati
+@app.after_requestdef headers(response):    response.headers['Cache-Control'] = 'no-store'    response.headers['X-Content-Type-Options'] = 'nosniff'    return response@app.get('/')@app.get('/api/csrf')def entry():    sid, record = get_session()    if not record:        sid, record = issue_session()    if request.path == '/api/csrf':        response = jsonify(csrf=record['csrf'])    else:        response = make_response(render_template('index.html',            csrf=record['csrf'], username=record['username']))    return attach_cookie(response, sid)@app.post('/login')def login():    sid, record = get_session()    if not valid_csrf(record):        return fail(403, 'CSRF tekshiruvi bajarilmadi.')    name = request.form.get('username', '')    password = request.form.get('password', '')    user = USERS.get(name)    stored_hash = user['hash'] if user else DUMMY_HASH    password_ok = check_password_hash(stored_hash, password)    if not user or not password_ok:        return fail(401, 'Login yoki parol xato.')    SESSIONS.pop(sid, None)    new_sid, _ = issue_session(name)    response = jsonify(message='Kirish bajarildi.', role=user['role'])    return attach_cookie(response, new_sid)@app.get('/api/me')def me():    user = current_user()    if not user:        return fail(401, 'Avval tizimga kiring.')    return jsonify(id=user['id'], role=user['role'])@app.get('/api/admin')def admin():    user = current_user()    if not user:        return fail(401, 'Avval tizimga kiring.')    if user['role'] != 'admin':        return fail(403, 'Administrator huquqi kerak.')    return jsonify(message='Administrator hisoboti', users=len(USERS))
+DUMMY_HASH noma’lum login holatida ham xesh tekshiruvini bajaradi. Bu yordamchi chora barcha timing farqlari yoki avtomatlashtirilgan parol sinovlariga qarshi to‘liq himoya emas.
+1-ilova davomi. C qism — hujjat, logout va ishga tushirish
+@app.get('/api/docs/<int:doc_id>')def document(doc_id):    user = current_user()    if not user:        return fail(401, 'Avval tizimga kiring.')    doc = DOCS.get(doc_id)    if not doc:        return fail(404, 'Hujjat topilmadi.')    allowed = user['role'] == 'admin' or doc['owner'] == user['id']    if not app.config['WEAK_AUTHZ'] and not allowed:        return fail(403, 'Bu hujjatga ruxsat yoq.')    return jsonify(id=doc_id, **doc)@app.post('/api/logout')def logout():    sid, record = get_session()    if not record or not record['username']:        return fail(401, 'Faol sessiya yoq.')    if not valid_csrf(record):        return fail(403, 'CSRF tekshiruvi bajarilmadi.')    SESSIONS.pop(sid, None)    response = jsonify(message='Sessiya bekor qilindi.')    response.delete_cookie(COOKIE, path='/')    return response@app.errorhandler(HTTPException)def http_error(error):    return fail(error.code or 500, 'Sorov bajarilmadi.')if __name__ == '__main__':    parser = argparse.ArgumentParser()    parser.add_argument('--weak-authz', action='store_true')    parser.add_argument('--ttl', type=int, default=1200)    args = parser.parse_args()    if args.ttl < 1:        parser.error('--ttl musbat son bolishi kerak')    app.config.update(WEAK_AUTHZ=args.weak_authz, TTL=args.ttl)    app.run(host='127.0.0.1', port=8004, debug=False,            use_reloader=False, threaded=False)
+1.6-bosqichda document funksiyasidagi WEAK_AUTHZga bog‘liq shart almashtiriladi. Sessiya muddati time.monotonic bilan serverda tekshiriladi; klient yuborgan rol yoki vaqtga tayanilmaydi.
+2-ilova. templates/index.html — brauzer formasi
+Quyidagi kodni app.py yonidagi templates papkasining index.html fayliga yozing. Jinja csrf va username qiymatlarini HTML shabloniga xavfsiz chiqaradi; bu qiymatlar uchun safe filtri qo‘llanmagan.
+<!doctype html><html lang="uz"><meta charset="utf-8"><title>A4: talabalar hujjatlari portali</title><style>body {font: 18px sans-serif; max-width: 800px; margin: 30px auto;}label {display: block; margin: 10px 0;}button, input {padding: 8px;}</style><h1>A4: talabalar hujjatlari portali</h1><p>Joriy foydalanuvchi: {{ username or 'mehmon' }}</p><form method="post" action="/login"><input type="hidden" name="csrf" value="{{ csrf }}"><label>Login <input name="username" required autocomplete="username"></label><label>Parol <input name="password" type="password" required autocomplete="current-password"></label><button>Kirish</button></form><p><a href="/api/me">Mening rolim</a> |<a href="/api/docs/101">101-hujjat</a> |<a href="/api/docs/102">102-hujjat</a> |<a href="/api/admin">Administrator hisoboti</a></p><form method="post" action="/api/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Chiqish</button></form><p>JSON javobidan keyin shu bosh sahifani manzil orqali qayta oching.</p><p>Faqat o'quv akkauntlari. Brauzerga parolni saqlatmang.</p></html>
+Koddagi vazifalarni topish
+username/password maydonlari — parol bilan autentifikatsiya uchun foydalanuvchi kiritmasi.
+Yashirin csrf maydoni — shu sessiyaga tegishli token; server valid_csrf yordamchisi bilan tekshiradi.
+Administrator havolasi hamma uchun ko‘rinadi, ammo endpoint rolni serverda tekshiradi. UI ko‘rinishi huquqning dalili emas.
+Login va logout POST orqali yuboriladi; JSON natijadan keyin bosh sahifani manzil orqali qayta ochish yangi tokenli formani oladi.
+Amaliy ishning yakuniy holati: koddagi obyekt tekshiruvini chetlab o‘tish olib tashlangan, ruxsat matritsasi tekshirilgan, eski sessiya replayi rad etilgan, sinov cookie fayllari tozalangan.

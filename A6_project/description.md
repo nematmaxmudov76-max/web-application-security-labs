@@ -58,17 +58,17 @@ Mashg‘ulot yakunida quyidagi amaliy natijalarga erishiladi:
 
 ### 1.3. Asosiy parametrlar va muhit ko‘rsatkichlari
 
-| Ko‘rsatkich | Qiymat / Tavsif |
-| :--- | :--- |
-| **Mavzu / Variant** | A6 / 1-variant (Izohlar va profil sahifasida XSS hamda CSRF) |
-| **Asosiy operatsion tizim (Host)** | Ubuntu Desktop (Linux muhiti) |
-| **Virtualizator** | VMware Workstation Pro / Player for Linux |
-| **Virtual mashina (Guest VM)** | Ubuntu 24.04 LTS Desktop (yoki Ubuntu Server) |
-| **Tarmoq holati** | Shaxsiy Wi-Fi tarmog‘i, VMware NAT rejimi (hech qanday proksisiz) |
-| **Asosiy ilova (Target App)** | `http://app.a6.test:8006/` — Flask da yozilgan sun’iy Ali profili |
-| **Tashqi tajriba sahifasi (Attacker)** | `http://evil.a6.test:8007/` — Python lokal statik HTTP server |
-| **Asosiy vositalar** | Python 3, Flask 3.1.3, Firefox Developer Tools, curl, nano / bash |
-| **Hisobot dalillari** | D1 dan D7 gacha bo‘lgan amaliy skrinshotlar va jurnal ma’lumotlari |
+| Ko‘rsatkich                            | Qiymat / Tavsif                                                    |
+| :------------------------------------- | :----------------------------------------------------------------- |
+| **Mavzu / Variant**                    | A6 / 1-variant (Izohlar va profil sahifasida XSS hamda CSRF)       |
+| **Asosiy operatsion tizim (Host)**     | Ubuntu Desktop (Linux muhiti)                                      |
+| **Virtualizator**                      | VMware Workstation Pro / Player for Linux                          |
+| **Virtual mashina (Guest VM)**         | Ubuntu 24.04 LTS Desktop (yoki Ubuntu Server)                      |
+| **Tarmoq holati**                      | Shaxsiy Wi-Fi tarmog‘i, VMware NAT rejimi (hech qanday proksisiz)  |
+| **Asosiy ilova (Target App)**          | `http://app.a6.test:8006/` — Flask da yozilgan sun’iy Ali profili  |
+| **Tashqi tajriba sahifasi (Attacker)** | `http://evil.a6.test:8007/` — Python lokal statik HTTP server      |
+| **Asosiy vositalar**                   | Python 3, Flask 3.1.3, Firefox Developer Tools, curl, nano / bash  |
+| **Hisobot dalillari**                  | D1 dan D7 gacha bo‘lgan amaliy skrinshotlar va jurnal ma’lumotlari |
 
 ---
 

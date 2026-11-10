@@ -1,0 +1,209 @@
+Veb Dasturlar Xavfsizligi: A3 Amaliy Mashg‘ulot Qo‘llanmasi
+1. Asosiy maqsad
+Ushbu laboratoriya mashg‘ulotining asosiy maqsadi — talabalarda zamonaviy veb-ilovalarning server tomoni (Backend / Server-side) arxitekturasi, foydalanuvchi identifikatsiyasi (Autentifikatsiya) va ruxsatlarni boshqarish (Avtorizatsiya) mexanizmlari hamda ulardagi zaifliklarni aniqlash va bartaraf etish bo‘yicha amaliy ko‘nikmalarni shakllantirishdir:
+Autentifikatsiya va Avtorizatsiyani aniq ajratish: Foydalanuvchining shaxsini tasdiqlash («Kim kiryapti?») bilan uning resurslar ustida amal bajarish huquqini tekshirish («Bu foydalanuvchiga ushbu amalni bajarishga ruxsat bormi?») o‘rtasidagi farqni tushunish. 
+Parollarni xavfsiz saqlash va tekshirish: Ochiq parollar emas, balki tuz (salt) qo‘shilgan zamonaviy kriptografik xeshlar (scrypt algoritmi orqali generate_password_hash va check_password_hash) ishlash mexanizmini hamda vaqt bo‘yicha hujumlar (Timing attacks) va foydalanuvchi mavjudligini oshkor qilish (Username Enumeration) xatarlarining oldini olish choralarini o‘rganish. 
+Sessiyalarni boshqarish va Sessiya fiksatsiyasidan himoya: Tasodifiy, kriptografik xavfsiz identifikatorlar (secrets.token_urlsafe) yaratish, kirish (login) muvaffaqiyatli bo‘lganda eski vaqtinchalik identifikatorni bekor qilib yangi sessiya identifikatori (SID) berish (Session Fixation profilaktikasi) jarayonini kuzatish. 
+Rol (RBAC) va Obyekt (OBAC / ABAC) darajasidagi ruxsatlarni tekshirish: Rol nazorati (talaba / admin) obyekt darajasidagi egalikni (talabaning shaxsiy hujjati) avtomatik ta’minlay olmasligini, interfeysdagi havolalarni yashirish yoki URL parametrlarini almashtirish (?role=admin) orqali xavfsizlikka erishib bo‘lmasligini isbotlash. 
+BOLA / IDOR zaifligini amalda ko‘rish va tuzatish: Obyekt darajasidagi ruxsat nazorati buzilishi (Broken Object Level Authorization / Insecure Direct Object References) oqibatida boshqa talabaning maxfiy hujjatini o‘qish holatini tahlil qilish va server kodida tekshiruv shartini qat’iylashtirish orqali zaiflikni tuzatish. 
+Sessiyaning hayot sikli va Chiqish (Logout) xavfsizligi: Chiqish amali faqat mijoz brauzeridagi cookie faylini o‘chirish bilan cheklanmasdan, server xotirasidagi sessiya yozuvini ham butunlay yo‘q qilishi (SESSIONS.pop()) shartligini Replay hujumi orqali isbotlash hamda sessiyaning mutlaq amal qilish muddati (TTL) tugashini tekshirish. 
+1-BOSQICH: ISHCHI MUHITNI TAYYORLASH VA ILOVANI YARATISH
+2. Papkalarni yaratish va Python muhitini o‘rnatish:
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip curl nano
+mkdir -p ~/websec/A4/templates
+cd ~/websec/A4
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install Flask==3.1.3
+python -m pip freeze > requirements-lock.txt
+python -m pip show Flask Werkzeug
+app.py Faylini Yaratish:~/websec/A4/app.py faylini yarating (nano app.py)
+templates/index.html Faylini Yaratish:
+~/websec/A4/templates/index.html faylini yarating (nano templates/index.html):
+3. DASTLABKI HTTP TEKSHIRUVI (ANONIM SO‘ROVLAR)
+Yangi ikkinchi terminal oynasini oching (Ctrl+Alt+T) va quyidagi buyruqlarni bajaring:
+cd ~/websec/A4
+a4_base=http://127.0.0.1:8004
+curl --noproxy "*" -i "$A4_BASE/api/me"
+curl --noproxy "*" -i "$A4_BASE/api/admin"
+Kutiladigan natija:
+Ikkala so‘rovga ham serverdan HTTP/1.1 401 UNAUTHORIZED qaytadi. Chunki so‘rovda cookie identifikatori mavjud emas. (1-rasm)
+1-rasm.
+4. AUTENTIFIKATSIYA TAJRIBASI (XATO VA TO‘G‘RI LOGIN, CSRF VA SID)
+curl orqali to‘g‘ri kirish va Sessiya yangilanishini (SID Regeneration) tekshirish:Ikkinchi terminalda quyidagi buyruqlar blokini bajaring:(2-rasm)
+curl --noproxy "*" -s -c ali.cookies "$a4_base/api/csrf" > csrf.json
+a4_csrf=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')
+cp ali.cookies anon.cookies
+curl --noproxy "*" -i -b ali.cookies -c ali.cookies \
+  -H "X-CSRF-Token: $a4_csrf" \
+  --data-urlencode 'username=ali' \
+  --data-urlencode 'password=Ali-A4-Only!' "$a4_base/login"
+Keyin anonim cookie bilan yangilangan cookieni solishtiramiz:
+cat anon.cookies
+cat ali.cookies
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/me"
+curl --noproxy "*" -i -b anon.cookies "$a4_base/api/me"
+Dalil D1:Bu server login muvaffaqiyatli bo‘lganda eski sessiyani yo‘q qilib, yangi sessiya yaratganini (Session Fixation profilaktikasini) isbotlaydi.(3-rasm)
+2-rasm.
+3-rasm
+5-BOSQICH: RUXSAT MATRITSASI (RBAC VA OBAC SINAVI)
+Ali nomidan turli resurslarga so‘rovlar yuborib ko‘ramiz:
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/admin"
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/docs/101"
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/docs/102"
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/admin?role=admin"
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/docs/999"
+Kutiladigan natijalar tahlili:
+/api/admin \rightarrow 403 Forbidden («Administrator huquqi kerak»). Ali student bo‘lgani uchun admin sahifasiga kira olmaydi (RBAC). 
+/api/docs/101 \rightarrow 200 OK («Alining oquv hujjati»). Ali o‘zining shaxsiy hujjatini muvaffaqiyatli o‘qidi (OBAC). 
+/api/docs/102 \rightarrow 403 Forbidden («Bu hujjatga ruxsat yoq»). 102 hujjati Valiga tegishli bo‘lgani uchun Aliga ruxsat berilmadi. 
+/api/admin?role=admin \rightarrow 403 Forbidden. URL orqali role=admin parametrini yuborish serverdagi rolni o‘zgartira olmaydi! 
+/api/docs/999 \rightarrow 404 Not Found («Hujjat topilmadi»). Baza ichida 999 raqamli hujjat mavjud emas. 
+Dalil D2: Ruxsat matritsasi talabalar va administratorlar uchun huquqlar to‘g‘ri izolyatsiya qilinganini ko‘rsatadi.
+4-rasm
+6-BOSQICH: BOSHQARILADIGAN ZAIFLIK (BOLA / IDOR AMALDA)
+Endi server kodidagi zaiflikni faollashtirib ko‘ramiz:
+Server ishlayotgan birinchi terminalga o‘ting va Ctrl+C tugmasi bilan serverni to‘xtating.
+Serverni maxsus zaiflik bayrog‘i bilan qayta ishga tushiring:
+python app.py --weak-authz
+--weak-authz: Ilovadagi WEAK_AUTHZ parametrini True qiladi. In-memory sessiyalar server to‘xtatilganda o‘chib ketadi. 
+Ikkinchi terminalga o‘tib, Alining login blokini qayta bajaring (yangi cookie olish uchun):
+curl --noproxy "*" -s -c ali.cookies "$a4_base/api/csrf" > csrf.json
+a4_csrf=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')
+curl --noproxy "*" -s -b ali.cookies -c ali.cookies \
+  -H "X-CSRF-Token: $a4_csrf" \
+  --data-urlencode 'username=ali' \
+  --data-urlencode 'password=Ali-A4-Only!' "$a4_base/login" > /dev/null
+Endi Ali nomidan Valining 102-hujjatini so‘rang:
+curl --noproxy "*" -i -b ali.cookies "$a4_base/api/docs/102"
+Kutiladigan natija (Zaiflik isboti):
+Server HTTP 200 OK qaytaradi va {"id": 102, "owner": 2, "text": "Valining oquv hujjati"} ma’lumotini chiqaradi! 
+/api/admin esa baribir 403 Forbidden qaytaradi. 
+Xulosa va Dalil D3: Bu haqiqiy IDOR (BOLA) zaifligidir! Autentifikatsiya mavjud, RBAC bor, lekin obyekt darajasidagi tekshiruv chetlab o‘tilganligi tufayli talaba boshqa birovning shaxsiy hujjatini o‘g‘irlab o‘qiy oldi. (5-rasm)
+5-rasm
+7-BOSQICH: ZAIFLIKNI KODDA TUZATISH VA QAYTA SINASH
+Birinchi terminalda Ctrl+C bilan zaif serverni to‘xtating. 
+app.py faylidan zaxira nusxa oling va uni tahrirlang: 
+cp app.py app.original.py
+nano app.py
+app.py ichidagi document(doc_id) funksiyasini toping (taxminan 105-qatorda):
+Eski zaif qator: 
+if not app.config['WEAK_AUTHZ'] and not allowed:
+Yangi xavfsiz qatorga almashtiring: 
+if not allowed:
+Ctrl+O va Enter bosib saqlang, Ctrl+X bilan chiqing. 
+Kodni sintaksisini tekshiring va ataylab yana --weak-authz bayrog‘i bilan ishga tushiring:
+python app.py --weak-authz
+Ikkinchi terminalda Alining loginini yangilang va yana 102-hujjatni so‘rang:
+curl --noproxy "*" -s -c ali.cookies "$A4_BASE/api/csrf" > csrf.json
+A4_CSRF=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')
+curl --noproxy "*" -s -b ali.cookies -c ali.cookies \
+  -H "X-CSRF-Token: $A4_CSRF" \
+  --data-urlencode 'username=ali' \
+  --data-urlencode 'password=Ali-A4-Only!' "$A4_BASE/login" > /dev/null
+curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/docs/101"
+curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/docs/102"
+Kutiladigan natija (Tuzatilganlik isboti):
+Ali o‘zining 101-hujjati uchun 200 OK oladi. 
+Valining 102-hujjati uchun esa qat’iy 403 FORBIDDEN qaytadi! (6-rasm)
+Dalil D4: Server hatto --weak-authz rejimida ishga tushirilgan bo‘lsa ham, koddagi zaif shart olib tashlangani tufayli tizim xavfsiz holatga keltirildi. 
+6-rasm
+8-BOSQICH: CHIQISHDAN KEYIN ESKI SESSIYANI QAYTA ISHLATISH (REPLAY ATTACK SINOVI)
+Ushbu mashqda biz haqiqiy xakerlik usulini — sessiyani qayta ishlatish (Replay attack) xavfini va server-tomonida sessiyani to‘liq bekor qilish (Invalidation) muhimligini tekshiramiz.
+Alining faol cookie faylidan nusxa olib qo‘yamiz (o‘g‘irlangan cookie nusxasi):
+cp ali.cookies replay.cookies
+curl --noproxy "*" -i -b replay.cookies "$A4_BASE/api/me"
+Natija: 200 OK (chunki sessiya hali serverda faol). 
+Endi tizimdan to‘g‘ri chiqish (logout) so‘rovini bajaramiz:
+curl --noproxy "*" -s -b ali.cookies -c ali.cookies "$A4_BASE/api/csrf" > csrf.json
+A4_CSRF=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')
+curl --noproxy "*" -i -b ali.cookies -c ali.cookies -X POST \
+  -H "X-CSRF-Token: $A4_CSRF" "$A4_BASE/api/logout"
+Natija: HTTP 200 OK ({"message": "Sessiya bekor qilindi."}). 
+Endi avval saqlab olingan replay.cookies fayli bilan yana /api/me ga kirib ko‘ramiz:
+curl --noproxy "*" -i -b replay.cookies "$A4_BASE/api/me"
+CLI komandalar va Kutiladigan natija:
+Natija: HTTP/1.1 401 UNAUTHORIZED! (7-rasm)
+Dalil D5 : Brauzerda cookie fayli o‘chirilmasdan saqlanib qolgan bo‘lsa ham, server o‘z xotirasidagi yozuvni SESSIONS.pop(sid, None) orqali yo‘q qilgani uchun eski identifikator bilan qayta kirib bo‘lmaydi. 
+7-rasm
+9-BOSQICH: SESSIYA MUDDATINI QISQA TAJRIBADA TESHKIRISH (TTL)
+Oddiy rejimda sessiya 1200 soniya (20 daqiqa) yashaydi. Sinovni tez o‘tkazish uchun serverni 20 soniyalik muddat bilan ishga tushiramiz:
+Server terminalida Ctrl+C bosing va serverni quyidagicha yoqing:
+python app.py --ttl 20
+--ttl 20: Sessiyaning mutlaq yashash vaqtini 20 soniya deb belgilaydi. 
+Ikkinchi terminalda darhol login qiling va tezda tekshiring:
+curl --noproxy "*" -s -c ali.cookies "$A4_BASE/api/csrf" > csrf.json
+A4_CSRF=$(python3 -c 'import json; print(json.load(open("csrf.json"))["csrf"])')
+curl --noproxy "*" -s -b ali.cookies -c ali.cookies \
+  -H "X-CSRF-Token: $A4_CSRF" \
+  --data-urlencode 'username=ali' \
+  --data-urlencode 'password=Ali-A4-Only!' "$A4_BASE/login" > /dev/null
+curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/me"
+Dastlabki soniyalarda javob: 200 OK. 
+Endi 22 soniya kuting va yana so‘rov yuboring:
+sleep 22
+curl --noproxy "*" -i -b ali.cookies "$A4_BASE/api/me"
+CLI komandalar va Kutiladigan natija:
+sleep 22: Terminalni 22 soniyaga to‘xtatib turadi (bu vaqtda sessiyaning 20 soniyalik muddati tugaydi). 
+Keyingi curl: HTTP/1.1 401 UNAUTHORIZED! 
+Dalil D5 (2-qism): Cookie fayl mijozda o‘zgarmasdan turgan bo‘lsa ham, serverdagi time.monotonic() >= record['expires'] sharti ishlab, sessiyani avtomatik bekor qildi. (8-rasm)
+Ish oxirida test fayllarini tozalash: 
+rm -f ali.cookies anon.cookies replay.cookies csrf.json
+8-rasm
+N0
+Tekshiruv nomi va sharti
+Kutiladigan natija
+Amaldagi natija va asosi
+1
+Cookie yo‘q: `/api/me`
+401 Unauthorized
+401 Unauthorized (error: Avval tizimga kiring.) — Anonim so‘rov rad etildi.
+2
+Mavjud/noma’lum login, xato parol
+401; bir xil xabar
+401 Unauthorized (error: Login yoki parol xato.) — Username Enumeration himoyasi.
+3
+To‘g‘ri login (ali/Ali-A4-Only!)
+200; SID yangilanadi
+200 OK — anon.cookies va ali.cookies fayllaridagi a4_sid mutlaqo yangilandi.
+4
+Cookie atributlari (`a4_sid`)
+HttpOnly; SameSite=Lax
+HttpOnly=True; SameSite=Lax; Path=/; secure=False — Brauzer JS o‘qiy olmaydi.
+5
+Ali → /api/admin?role=admin
+403 Forbidden
+403 Forbidden (error: Administrator huquqi kerak.) — URL parametri rolni o‘zgartirmaydi.
+6
+Ali → /101 va 102 (xavfsiz rejim)
+200/403
+101: 200 OK (o‘z hujjati), 102: 403 Forbidden (Valining hujjati rad etildi).
+7
+Vali → 101 va 102 (xafsiz rejim)
+403/200
+101: 403 Forbidden, 102: 200 OK — Har bir talaba faqat o‘z hujjatiga ega.
+8
+Admin → 101/102/api/admin
+200/200/200
+Barchasi 200 OK — Administrator barcha hujjatlar va hisobotni o‘qish vakolatiga ega.
+9
+Ali → 102(zaif rejim --weak-authz)
+200 – zaiflik dalili
+200 OK (Valining oquv hujjati) — BOLA / IDOR zaifligi amalda isbotlandi.
+10
+Ali → 102 (kod tuzatilgan rejim)
+403; o’zi hujjati 200
+102: 403 Forbidden, 101: 200 OK — --weak-authz ostida ham IDOR bartaraf etildi.
+11
+CSRFsiz logout so’rovi
+403; sessiya saqlanadi
+403 Forbidden (error: CSRF tekshiruvi bajarilmadi.) — Sessiya faol qoldi.
+12
+To’g’ri logout; eski cookie replay
+200; keyingi /me 401
+Logout: 200 OK, Replay /me: 401 Unauthorized — Server sessiyani bekor qildi.
+13
+120 soniyalik sessiya tugashi(--ttl 120)
+/me: avval 200, keyin 401
+Dastlab 200 OK, sleep 22 dan so‘ng 401 Unauthorized — Sessiya vaqti tugadi.

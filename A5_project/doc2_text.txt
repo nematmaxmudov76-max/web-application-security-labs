@@ -1,0 +1,225 @@
+VEB DASTURLAR XAVFSIZLIGI
+F.I.SH:Maxmudov Nematjon
+Guruh:AX2401
+A5. Inyeksiya zaifliklari: SQL inyeksiya, NoSQL va ORM xavfsizligi
+Asosiy maqsadUshbu A5 laboratoriya mashg‘ulotining asosiy maqsadi — talabalarda veb-ilovalarning ma’lumotlar bazasi bilan aloqa qiluvchi qatlamlarida (Database Abstraction Layer) yuzaga keladigan Inyeksiya (Injection) zaifliklarini amaliy tushunish, ularni ekspluatatsiya qilish, sabablarini tahlil qilish hamda zamonaviy dasturlash standartlariga muvofiq xavfsiz holatga keltirish ko‘nikmalarini shakllantirishdir.
+Laboratoriya davomida:
+Foydalanuvchi kiritgan ma’lumotlar (Input) dastur kodi va ma’lumotlar bazasi so‘rovi (Query Structure) tuzilishini qanday o‘zgartirib yuborishini tajribada isbotlash. 
+Relyatsion ma’lumotlar bazalarida xom SQL (Raw SQL) va string formatlash (f-string, konkatenatsiya) qanday xavf tug‘dirishini ko‘rsatish. 
+ORM (Object-Relational Mapping — SQLAlchemy) kutubxonasidan foydalanishning o‘zi avtomatik tarzda xavfsizlik kafolatini bermasligini (ORM ichida xom SQL bajarish xatosi) ochib berish. 
+NoSQL (MongoDB / mongomock) ma’lumotlar omborida matn (String) o‘rniga JSON obyektlari (Object / Dictionary) yuborilganda so‘rov mantig‘i qanday buzilishini (Operator Injection) tahlil qilish. 
+Har uchala zaiflikni to‘g‘ri himoya usullari: parametrli so‘rovlar (Parameterized Queries / Prepared Statements), ORM model ifodalari hamda kiritma turini tekshirish (Type / Scalar Validation) orqali to‘liq bartaraf etish. 
+1-Topshiriq:Serverni ishga tushirish va boshlang‘ich holatni tekshirish (Dalil D1)
+Laboratoriyada qulay ishlash uchun ikkita terminal oynasi kerak bo‘ladi:
+1-terminal (Server terminali): Serverni ishga tushiradi va konsol xabarlarini ko‘rsatib turadi. 
+2-terminal (Mijoz terminali): curl buyruqlari orqali so‘rovlar yuboriladi va javoblar tahlil qilinadi. 
+1-topshiriq: Nazorat so‘rovlari (Oddiy nom, yopiq nom va mavjud bo‘lmagan nom)
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Daftar" | tee evidence/D1_daftar.txt
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Ichki loyiha" | tee evidence/D1_ichki.txt
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Mavjud emas" | tee evidence/D1_mavjud_emas.txt
+Kutiladigan natija (Dalil D1):(1-rasm)
+name=Daftar: HTTP 200 OK, count: 1, items: [{"id": 1, "name": "Daftar", "public": true}]. 
+name=Ichki loyiha: HTTP 200 OK, count: 0, items: []. (Chunki public=0, ko‘rinmasligi shart!). 
+name=Mavjud emas: HTTP 200 OK, count: 0, items: []. 
+1-rasm
+2-Topshiriq: SQL Inyeksiyani sinash va tahlil qilish (Dalillar D2–D3)
+Buzg‘unchi kiritmasi: Daftar' OR 1=1 -- 
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D2_sql_inject.txt
+Kutiladigan natija (Dalil D2):(2-rasm)
+HTTP/1.1 200 OK 
+count: 4 
+Qaytgan IDlar: [1, 2, 3, 4]. 
+Xulosa: Tizimdagi maxfiy Ichki loyiha (ID=4, public: false) ham ro‘yxatda chiqib keldi! SQL inyeksiya muvaffaqiyatli amalga oshdi. 
+True / False mantiqiy juftligi testi:
+Inyeksiya chindan ham mantiqiy shartga bog‘liqligini isbotlash uchun AND 1=1 (rost) va AND 1=2 (yolg‘on) shartlarini yuboramiz:
+# Rost (True) shart:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Daftar' AND 1=1 -- " | tee evidence/D2_true.txt
+# Yolg'on (False) shart:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Daftar' AND 1=2 -- " | tee evidence/D2_false.txt
+AND 1=1: HTTP 200 OK, count: 1, ID: 1 qaytadi (shart rost bo‘lgani uchun Daftar chiqadi). 
+AND 1=2: HTTP 200 OK, count: 0 qaytadi (chunki 1=2 har doim yolg‘on). 
+2-rasm
+Parametrli xavfsiz endpoint bilan taqqoslash (Dalil D3):(3-rasm)
+# 1. Xavfsiz endpointga inyeksiya yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/safe \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D3_safe_inject.txt
+# 2. Xavfsiz endpointga apostrofli qonuniy tovar yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/safe \
+  --data-urlencode "name=O'quv qo'llanma" | tee evidence/D3_safe_apostrophe.txt
+# 3. Zaif endpointga apostrofli qonuniy tovar yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=O'quv qo'llanma" | tee evidence/D3_weak_apostrophe.txt
+Tahlil va natijalar:
+/sql/safe da inyeksiya urinishi: HTTP 200 OK, count: 0. Tizim butun satrni bitta qiymat deb bildi va buzilmadi. 
+/sql/safe da O'quv qo'llanma: HTTP 200 OK, count: 1, ID: 3. Qonuniy apostrof xatosiz ishlaydi! 
+/sql/weak da O'quv qo'llanma: HTTP 400 Bad Request, {"error": "Sorov bajarilmadi"}. Chunki O'quv so‘zidagi apostrof SQL sintaksisini buzib, SQLite xatosini keltirib chiqardi! 
+3-rasm
+3-Topshiriq: ORM xavfsizligini tekshirish: Xom SQL vs Model ifodasi (Dalil D4)
+ORM endpointlarini tekshirish
+# 1. Zaif ORM endpointiga inyeksiya yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/weak \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D4_orm_weak.txt
+# 2. Xavfsiz ORM endpointiga inyeksiya yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/safe \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D4_orm_safe.txt
+# 3. Xavfsiz ORM endpointiga apostrofli tovar yuborish:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/safe \
+  --data-urlencode "name=O'quv qo'llanma" | tee evidence/D4_orm_safe_apostrophe.txt
+Natijalar (Dalil D4):(4-rasm)
+/orm/weak + inyeksiya: HTTP 200 OK, count: 4 (ID 1–4). ORM ishlatilishiga qaramasdan, xom SQL tufayli yopiq tovar sizib chiqdi! 
+/orm/safe + inyeksiya: HTTP 200 OK, count: 0. 
+/orm/safe + O'quv qo'llanma: HTTP 200 OK, count: 1, ID: 3. 
+4-rasm
+4-Topshiriq: NoSQL Operator Inyeksiyasini sinash (Dalil D5)
+NoSQL endpointlari POST so‘rovlarini qabul qiladi.
+# 1. Zaif NoSQL endpointiga oddiy nom yuborish:
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/weak \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Daftar"}' | tee evidence/D5_nosql_normal.txt
+# 2. Zaif NoSQL endpointiga operatorli obyekt inyeksiyasi yuborish:
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/weak \
+  -H 'Content-Type: application/json' \
+  -d '{"name":{"$ne":null}}' | tee evidence/D5_nosql_inject.txt
+# 3. Xavfsiz NoSQL endpointiga o'sha operatorni yuborish:
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/safe \
+  -H 'Content-Type: application/json' \
+  -d '{"name":{"$ne":null}}' | tee evidence/D5_nosql_safe_reject.txt
+# 4. Xavfsiz NoSQL endpointiga qo'shimcha "public" maydoni qo'shib yuborish:
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/safe \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Daftar","public":false}' | tee evidence/D5_nosql_safe_extra_field.txt
+Buyruq parametrlari tushuntirishi:
+-H 'Content-Type: application/json': HTTP so‘rov sarlavhasida yuborilayotgan tana (body) JSON formatida ekanligini bildiradi. 
+-d '...': POST so‘rovi tanasida yuboriladigan ma’lumot. Bash qobig‘ida $ne belgisi o‘zgaruvchi deb talqin qilinmasligi uchun butun JSON bir tirnoq ('...') ichiga olinadi. 
+Natijalar (Dalil D5):(5-rasm)
+Zaif endpointda {"name":{"$ne":null}}: HTTP 200 OK, count: 3, IDlar: [1, 2, 3]. Barcha ochiq tovarlar chiqdi! 
+Nega ID=4 chiqmadi? Chunki serverdagi public: True kodi saqlanib qolgan. 
+Xavfsiz endpointda: HTTP 400 Bad Request, {"error": "name: 1..120 belgili matn kerak"}. Server obyektni rad etdi! 
+Qo‘shimcha maydonda: HTTP 400 Bad Request, {"error": "Faqat name maydoni kerak"}. 
+5-rasm
+5-Topshiriq: Kodni tuzatish va avvalgi manzillarda qayta sinash (Dalil D6)
+Endi app.py faylidagi uchta zaif funksiyani xavfsiz holatga keltiramiz.
+1. Serverni to‘xtating:
+1-terminalda Ctrl+C tugmalarini bosing.
+2. app.py faylini tahrirlang:
+nano app.py orqali faylni oching va sql_weak, orm_weak, hamda nosql_weak funksiyalarini quyidagi xavfsiz kodlarga almashtiring (funksiya nomlarini o‘zgartirmang!):
+# Tuzatilgan sql_weak funksiyasi (Parametrli so'rov):
+def sql_weak(name):
+    with engine.connect() as conn:
+        query = SQL + 'WHERE name = ? AND public = 1'
+        return conn.exec_driver_sql(query, (name,)).mappings().all()
+# Tuzatilgan orm_weak funksiyasi (Model ifodasi):
+def orm_weak(name):
+    with Session(engine) as session:
+        stmt = select(Product).where(
+            Product.name == name, Product.public.is_(True))
+        return [dict(id=p.id, name=p.name, public=p.public)
+                for p in session.scalars(stmt).all()]
+# Tuzatilgan nosql_weak funksiyasi (Sxema va tur tekshiruvi):
+def nosql_weak(body):
+    if not isinstance(body, dict) or set(body) != {'name'}:
+        abort(400, description='Faqat name maydoni kerak')
+    name = scalar(body['name'])
+    query = {'name': {'$eq': name}, 'public': True}
+    return list(collection.find(query, {'_id': 0}))
+Faylni saqlang (Ctrl+O, Enter, Ctrl+X).
+Kodni tekshiring va serverni qayta ishga tushiring:
+python -m py_compile app.py
+python app.py
+3. Regressiya sinovlarini o‘tkazish (Aynan /weak endpointlarida!):
+2-terminalda quyidagi buyruqlarni bajaring:
+# 1. SQL zaif endpointida inyeksiyani qayta sinash:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D6_sql_fixed_inject.txt
+# 2. SQL zaif endpointida apostrofli tovar:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=O'quv qo'llanma" | tee evidence/D6_sql_fixed_apostrophe.txt
+# 3. ORM zaif endpointida inyeksiyani qayta sinash:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/weak \
+  --data-urlencode "name=Daftar' OR 1=1 -- " | tee evidence/D6_orm_fixed_inject.txt
+# 4. ORM zaif endpointida apostrofli tovar:
+curl --noproxy "*" -i -G http://127.0.0.1:8005/orm/weak \
+  --data-urlencode "name=O'quv qo'llanma" | tee evidence/D6_orm_fixed_apostrophe.txt
+# 5. NoSQL zaif endpointida operatorni qayta sinash:
+curl --noproxy "*" -i http://127.0.0.1:8005/nosql/weak \
+  -H 'Content-Type: application/json' \
+  -d '{"name":{"$ne":null}}' | tee evidence/D6_nosql_fixed_operator.txt
+Kutiladigan natija (Dalil D6):(6-rasm)
+SQL va ORM da OR 1=1: Endi HTTP 200 OK, count: 0. Zaiflik to‘liq bartaraf etildi! 
+SQL va ORM da O'quv qo'llanma: HTTP 200 OK, count: 1, ID: 3. Qonuniy nom muammosiz topildi. 
+NoSQL da {"name":{"$ne":null}}: HTTP 400 Bad Request, xato xabari qaytadi. 
+Kodlar farqini (diff) ko‘rish:
+diff -u app_before.py app.py | tee evidence/D6_code_diff.txt
+6-rasm
+Qo‘shimcha topshiriq: UNION SELECT inyeksiyasi(7-rasm)
+UNION SELECT inyeksiyasi orqali joriy natijaga sun’iy qatorlar qo‘shish mumkinligini sinab ko‘ramiz.
+curl --noproxy "*" -i -G http://127.0.0.1:8005/sql/weak \
+  --data-urlencode "name=x' UNION SELECT 99,'TEST',1 -- "
+Zaif kodda kutiladigan natija: HTTP 200 OK, count: 1, items: [{"id": 99, "name": "TEST", "public": true}]. Bazada mavjud bo‘lmagan soxta qator hosil qilindi! 
+Tuzatilgan kodda kutiladigan natija: HTTP 200 OK, count: 0. 
+7-rasm
+Natijalar jadvali (Oldin va Keyin holati)
+Sinov turi va Kiritma (Payload)
+Tuzatishdan oldin (/weak)
+Tuzatishdan keyin (/weak)
+Natija holati
+SQL: name=Daftar
+HTTP 200; count: 1; ID=1
+HTTP 200; count: 1; ID=1
+Qonuniy qidiruv saqlangan
+SQL: name=Daftar' OR 1=1 -- 
+HTTP 200; count: 4; ID=1–4
+HTTP 200; count: 0
+Zaiflik bartaraf etildi
+SQL: name=O'quv qo'llanma
+HTTP 400; Xato (buzildi)
+HTTP 200; count: 1; ID=3
+Apostrof xavfsiz ishlamoqda
+ORM: name=Daftar' OR 1=1 -- 
+HTTP 200; count: 4; ID=1–4
+HTTP 200; count: 0
+Zaiflik bartaraf etildi
+ORM: name=O'quv qo'llanma
+HTTP 400; Xato (buzildi)
+HTTP 200; count: 1; ID=3
+Model ifodasi to‘g‘ri ishladi
+NoSQL: {"name": "Daftar"}
+HTTP 200; count: 1; ID=1
+HTTP 200; count: 1; ID=1
+Qonuniy JSON saqlangan
+NoSQL: {"name":{"$ne":null}}
+HTTP 200; count: 3; ID=1–3
+HTTP 400; Error
+Operator inyeksiyasi to‘xtatildi
+SQL/ORM/NoSQL: Ichki loyiha
+HTTP 200; count: 0
+HTTP 200; count: 0
+Maxfiy yozuv himoyalangan
+1-savol: SQLdagi ? placeholder nima uchun qo‘shtirnoqqa olinmaydi? (name,) oxiridagi vergul nimani bildiradi?
+Javob: 
+? belgisi SQL tahlilchisi (parser) uchun maxsus o‘rin egallovchi (placeholder) hisoblanadi. Agar uni WHERE name = '?' deb qo‘shtirnoqqa olsak, ma’lumotlar bazasi uni parametr emas, balki so‘roq belgisi shaklidagi oddiy matn literal deb tushunadi. Shuning uchun ? qo‘shtirnoqsiz yoziladi. 
+Python tilida (name) ifodasi oddiy qavs ichidagi o‘zgaruvchi hisoblanadi (string turi). Oxiriga vergul qo‘yilgan (name,) sintaksisi esa Python’da bitta elementdan iborat kortej (tuple) yaratadi. Ma’lumotlar bazasi drayverlari parametrlarni kortej yoki ro‘yxat ko‘rinishida qabul qilishi shart. 
+2-savol: Nega "O'quv qo'llanma" nomini rad etish (yoki apostrofni o‘chirish) to‘g‘ri himoya emas?
+Javob:O‘zbek, ingliz va boshqa ko‘plab tillarda apostrof so‘zning ajralmas grammatik qismidir (masalan: O'quv, Ma'lumot, O'zbekiston, Don't). Agar tizim apostroflarni taqiqlasa yoki o‘chirib tashlasa: 
+Foydalanuvchilar o‘z mahsulotlarini qonuniy nomi bilan saqlay olmaydi va qidira olmaydi. 
+Bu xavfsizlik emas, balki tizim funksionalligining buzilishi (buzuq arxitektura) hisoblanadi.To‘g‘ri yo‘l — apostrofni o‘chirish emas, balki parametrli so‘rovlar orqali apostrofli matnlarni xavfsiz qayta ishlashdir. 
+3-savol: session.execute(text(query)) qachon xavfli? Parametrli ORM ifodasi undan nimasi bilan farq qiladi?
+Javob: 
+session.execute(text(query)) funksiyasi, agar query o‘zgaruvchisi f-string yoki string konkatenatsiyasi (+) yordamida foydalanuvchi ma’lumotlari bilan birlashtirilgan bo‘lsa, o‘ta xavflidir. Chunki text() funksiyasi SQL matnini avtomatik xavfsizlantirmaydi. 
+Parametrli ORM ifodasi (select(Product).where(Product.name == name)) esa obyekt darajasida ishlaydi. U foydalanuvchi kiritmasini SQL matniga qo‘shmaydi, balki drayver darajasida xavfsiz bog‘langan parametr sifatida uzatadi. 
+4-savol: Nega NoSQL $ne:null sinovida 3 ta yozuv chiqdi, SQL OR sinovida esa 4 ta?
+Javob: 
+SQL inyeksiyasida buzg‘unchi oxiriga izoh (-- ) belgisini qo‘ydi. Natijada dasturchi yozgan AND public = 1 sharti butunlay bekor qilindi va hatto maxfiy bo‘lgan public = 0 yozuvi (ID=4) ham chiqdi (jami 4 ta). 
+NoSQL kiritmasida esa foydalanuvchi faqat name maydoni o‘rniga obyekt yubordi. Lekin server kodi tomonidan belgilangan query = {'name': ..., 'public': True} filtridagi 'public': True sharti buzilmadi va saqlanib qoldi. Shu sababli NoSQL bazasi faqat public: True bo‘lgan 3 ta ochiq mahsulotni qaytardi, maxfiy ID=4 esa chiqmadi. 
+5-savol: Parametrli so‘rov public kabi ko‘rinish shartining (ruxsat nazoratining) o‘rnini bosa oladimi?
+Javob:Yo‘q, bosa olmaydi! Parametrli so‘rov — bu faqat so‘rov sintaksisini (tuzilmasini) buzilishdan himoya qiluvchi vositadir. Ko‘rinish sharti (public = 1) esa biznes mantiqi va ruxsat nazorati (Access Control) qoidasidir. Ular bir-birining o‘rnini bosmaydi, balki bir-birini to‘ldiradi. 
+6-savol: Stored Procedure va "faqat xatoni yashirish" nega avtomatik himoya kafolati emas?
+Javob: 
+Agar Stored Procedure (saqlanadigan protsedura) ichida dinamik SQL (EXECUTE IMMEDIATE yoki sp_executesql) formatlash orqali yozilgan bo‘lsa, inyeksiya xuddi oddiy so‘rovdagi kabi sodir bo‘laveradi. 
+Xato xabarlarini yashirish (masalan, foydalanuvchiga faqat HTTP 500 yoki umumiy xato ko‘rsatish) zaiflikni tuzatmaydi, balki faqat uni ko‘rinmas qiladi. Tajribali buzg‘unchi "Blind SQL Injection" (mantiqiy yoki vaqtga asoslangan inyeksiya) usullari orqali ma’lumotlarni o‘g‘irlashda davom etaveradi. 
