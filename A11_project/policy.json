@@ -1,0 +1,6 @@
+{
+ "rate_limit": false,
+ "window_seconds": 30,
+ "ip_limit": 8,
+ "account_limit": 3
+}

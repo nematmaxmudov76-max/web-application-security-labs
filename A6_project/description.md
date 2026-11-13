@@ -805,15 +805,15 @@ Brauzerda bosh sahifaga kirib, demo sessiyani yangilang.
 
 Laboratoriya hisobotini to‘ldirish uchun quyidagi yakuniy jadvaldan foydalaning:
 
-| Dalil | Sinov nomi | Dastlabki zaif holat | Tuzatish / Himoyadan keyingi holat | Amaldagi dalil ko‘rsatkichi |
-| :---: | :--- | :--- | :--- | :--- |
-| **D1** | Demo sessiya va cookie parametrlari | `POST /start` (302) -> `/profile` (200) | Bir xil, sessiya yaratiladi | Storage da `a6_sid`: `HttpOnly=true`, `SameSite=Lax` |
-| **D2** | Reflected XSS | Marker kiritilganda `A6-R` bajariladi | Kiritma oddiy matnga aylanadi | Tab sarlavhasi o‘zgarmaydi, xom HTML teglari yo‘q |
-| **D3** | Stored XSS | Izoh saqlanadi, yangi GET da ham `A6-S` | Qayta saqlangan izoh zararsiz matn | Yangi so‘rovda ham XSS bajarilmaydi |
-| **D4** | DOM-based XSS | Fragment orqali `innerHTML` ga tushadi, `A6-D` | `textContent` matn tuguni yaratadi | Fragment serverga bormaydi, sarlavha o‘zgarmaydi |
-| **D5** | Tashqi tokensiz POST (CSRF) | Tashqi formadan POST emailni o‘zgartiradi | — (Hali zaif holat) | Email `changed@lab.invalid` ga aylanadi |
-| **D6** | To‘rtta kod tuzatishi va regressiya | Profil tokensiz POST ni qabul qiladi | Tokensiz va noto‘g‘ri tokenli POST 403 oladi | Qonuniy POST ishlaydi, soxta POST rad etiladi (403) |
-| **D7** | CSP, Iframe va CORS tekshiruvi | Iframe ochiladi, inline xavf bor | Iframe bloklanadi, CORS o‘qishni to‘xtatadi | Console da CSP frame-ancestors va CORS xatolari |
+| Dalil  | Sinov nomi                          | Dastlabki zaif holat                           | Tuzatish / Himoyadan keyingi holat           | Amaldagi dalil ko‘rsatkichi                          |
+| :----: | :---------------------------------- | :--------------------------------------------- | :------------------------------------------- | :--------------------------------------------------- |
+| **D1** | Demo sessiya va cookie parametrlari | `POST /start` (302) -> `/profile` (200)        | Bir xil, sessiya yaratiladi                  | Storage da `a6_sid`: `HttpOnly=true`, `SameSite=Lax` |
+| **D2** | Reflected XSS                       | Marker kiritilganda `A6-R` bajariladi          | Kiritma oddiy matnga aylanadi                | Tab sarlavhasi o‘zgarmaydi, xom HTML teglari yo‘q    |
+| **D3** | Stored XSS                          | Izoh saqlanadi, yangi GET da ham `A6-S`        | Qayta saqlangan izoh zararsiz matn           | Yangi so‘rovda ham XSS bajarilmaydi                  |
+| **D4** | DOM-based XSS                       | Fragment orqali `innerHTML` ga tushadi, `A6-D` | `textContent` matn tuguni yaratadi           | Fragment serverga bormaydi, sarlavha o‘zgarmaydi     |
+| **D5** | Tashqi tokensiz POST (CSRF)         | Tashqi formadan POST emailni o‘zgartiradi      | — (Hali zaif holat)                          | Email `changed@lab.invalid` ga aylanadi              |
+| **D6** | To‘rtta kod tuzatishi va regressiya | Profil tokensiz POST ni qabul qiladi           | Tokensiz va noto‘g‘ri tokenli POST 403 oladi | Qonuniy POST ishlaydi, soxta POST rad etiladi (403)  |
+| **D7** | CSP, Iframe va CORS tekshiruvi      | Iframe ochiladi, inline xavf bor               | Iframe bloklanadi, CORS o‘qishni to‘xtatadi  | Console da CSP frame-ancestors va CORS xatolari      |
 
 ---
 
